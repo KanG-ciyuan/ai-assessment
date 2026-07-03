@@ -1490,7 +1490,7 @@ body {
 // ========================================
 const SUPABASE_URL = 'https://vzprjyngeihvsjzrfqgw.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ6cHJqeW5naWVodnNqenJmcWd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5ODAzMTYsImV4cCI6MjA5ODU1NjMxNn0.BWfTWJ-iU9MfJhdvq3kqOlbNIuD92w-vcIvCboJ3HKM';
-const EDGE_FUNCTION_URL = SUPABASE_URL + '/functions/v1/generate-report';
+const API_URL = '/api/generate-report';
 
 // 初始化 Supabase 客户端（全局可用）
 let supabaseClient = null;
@@ -1670,59 +1670,27 @@ async function submitQuiz() {
 
   let aiReport = null;
 
-  // 尝试走 Supabase + Edge Function 流程
-  if (supabaseClient) {
-    try {
-      // 第 1 步：答题记录存到 quiz_responses 表
-      const { data: responseData, error: responseError } = await supabaseClient
-        .from('quiz_responses')
-        .insert({
-          answers: answers,
-          total_score: total,
-          level: level.name,
-          dim_scores: dimScores,
-        })
-        .select('id')
-        .single();
-
-      if (responseError) {
-        console.warn('quiz_responses 写入失败:', responseError.message);
-      }
-
-      if (responseData && responseData.id) {
-        // 第 2 步：调 Edge Function 生成 AI 报告
-        try {
-          const edgeRes = await fetch(EDGE_FUNCTION_URL, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-            },
-            body: JSON.stringify({
-              response_id: responseData.id,
-              answers: answers,
-              dim_scores: dimScores,
-              total_score: total,
-              level: level.name,
-            }),
-          });
-
-          const edgeData = await edgeRes.json();
-          if (edgeData.success && edgeData.report) {
-            aiReport = edgeData.report;
-            console.log('AI 报告生成成功');
-          } else {
-            console.warn('Edge Function 返回失败:', edgeData.error || '未知错误');
-          }
-        } catch (edgeErr) {
-          console.warn('Edge Function 调用异常:', edgeErr.message);
-        }
-      }
-    } catch (err) {
-      console.warn('Supabase 流程异常，降级到本地报告:', err.message);
+  // 调用 Vercel API 生成 AI 报告
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        answers: answers,
+        dim_scores: dimScores,
+        total_score: total,
+        level: level.name,
+      }),
+    });
+    const data = await res.json();
+    if (data.success && data.report) {
+      aiReport = data.report;
+      console.log('AI 报告生成成功');
+    } else {
+      console.warn('API 返回失败:', data.error || '未知错误');
     }
-  } else {
-    console.warn('Supabase 未初始化，使用本地报告模式');
+  } catch (err) {
+    console.warn('API 调用异常，降级到本地报告:', err.message);
   }
 
   // 恢复按钮
