@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<!-- Supabase JS SDK（CDN） -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 /* ========================================
    CSS 变量
@@ -1053,6 +1055,148 @@ body {
   color: #bbbbbb;
   letter-spacing: 0.5px;
 }
+/* AI 分析报告区域 */
+.ai-report-wrap {
+  background: var(--bg);
+  border-radius: var(--radius);
+  padding: 28px 30px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 24px;
+}
+
+.ai-report-label {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #9b87bb;
+  background: rgba(120, 90, 180, 0.08);
+  padding: 3px 12px;
+  border-radius: 20px;
+  margin-bottom: 18px;
+  text-transform: uppercase;
+}
+
+.ai-report-content {
+  font-size: 14px;
+  color: #444;
+  line-height: 1.9;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.ai-report-content h3 {
+  font-size: 17px;
+  font-weight: 700;
+  color: #2a2a2a;
+  margin: 28px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #f0f0ed;
+}
+
+.ai-report-content h3:first-child {
+  margin-top: 0;
+}
+
+.ai-report-content hr {
+  border: none;
+  border-top: 1px solid #f0f0ed;
+  margin: 20px 0;
+}
+
+.ai-report-content strong {
+  color: #2a2a2a;
+  font-weight: 600;
+}
+
+.ai-report-content ul, .ai-report-content ol {
+  padding-left: 18px;
+  margin: 8px 0 14px;
+}
+
+.ai-report-content li {
+  margin-bottom: 5px;
+  line-height: 1.7;
+}
+
+.ai-report-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 14px 0;
+  font-size: 13px;
+}
+
+.ai-report-content th,
+.ai-report-content td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #f0f0ed;
+  text-align: left;
+}
+
+.ai-report-content th {
+  font-weight: 600;
+  color: #2a2a2a;
+  background: #fafaf9;
+}
+
+.ai-report-content p {
+  margin-bottom: 10px;
+}
+
+/* AI 加载状态 */
+.btn-submit-card.loading {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.btn-submit-card .loading-dots {
+  display: inline-block;
+}
+
+.btn-submit-card .loading-dots::after {
+  content: '';
+  animation: dot-typing 1.4s infinite;
+}
+
+@keyframes dot-typing {
+  0%, 20%   { content: '.'; }
+  40%       { content: '..'; }
+  60%, 100% { content: '...'; }
+}
+
+/* AI 不可用时的小提示 */
+.report-fallback-note {
+  text-align: center;
+  font-size: 11px;
+  color: #bbbbbb;
+  margin-top: 14px;
+  margin-bottom: 6px;
+  letter-spacing: 0.5px;
+}
+
+/* 报告分隔标题 */
+.report-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a1a;
+  text-align: center;
+  margin: 32px 0 18px;
+  letter-spacing: -0.3px;
+}
+
+@media (max-width: 768px) {
+  .ai-report-wrap {
+    padding: 20px 18px;
+  }
+  .ai-report-content {
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .ai-report-content h3 {
+    font-size: 15px;
+  }
+}
+
 
 /* 通用动画 */
 @keyframes fadeInUp {
@@ -1317,6 +1461,15 @@ body {
 <div class="page report-page" id="reportPage">
   <div class="report-inner">
     <div class="report-hero" id="reportHero"></div>
+
+    <!-- AI 深度分析报告（Edge Function 成功时显示） -->
+    <div class="ai-report-wrap" id="aiReportWrap" style="display:none;">
+      <div class="ai-report-label">🤖 AI 深度分析</div>
+      <div class="ai-report-content" id="aiReportContent"></div>
+    </div>
+    <!-- Edge Function 失败时的提示 -->
+    <div class="report-fallback-note" id="reportFallbackNote" style="display:none;">AI 分析暂时不可用，显示的是基础报告</div>
+
     <div class="report-radar-wrap">
       <svg viewBox="0 0 280 280" id="radarSvg"></svg>
     </div>
@@ -1332,6 +1485,28 @@ body {
 </div>
 
 <script>
+// ========================================
+// Supabase 配置
+// ========================================
+const SUPABASE_URL = 'https://vzprjyngeihvsjzrfqgw.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ6cHJqeW5naWVodnNqenJmcWd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5ODAzMTYsImV4cCI6MjA5ODU1NjMxNn0.BWfTWJ-iU9MfJhdvq3kqOlbNIuD92w-vcIvCboJ3HKM';
+const EDGE_FUNCTION_URL = SUPABASE_URL + '/functions/v1/generate-report';
+
+// 初始化 Supabase 客户端（全局可用）
+let supabase = null;
+(function initSupabase() {
+  try {
+    if (typeof window.supabase !== 'undefined') {
+      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      console.log('Supabase 客户端初始化成功');
+    } else {
+      console.warn('Supabase SDK 未加载，将使用本地报告模式');
+    }
+  } catch (e) {
+    console.warn('Supabase 初始化失败:', e.message);
+  }
+})();
+
 // ========================================
 // 题目数据
 // ========================================
@@ -1473,14 +1648,90 @@ function prevQuestion() {
   if (currentQ > 0) { currentQ--; renderQuestion(); }
 }
 
-function submitQuiz() {
+async function submitQuiz() {
+  // 检查是否有未答题目
   const unanswered = questions.filter(q => answers[q.id] === undefined);
   if (unanswered.length > 0) {
     currentQ = questions.indexOf(unanswered[0]);
     renderQuestion();
     return;
   }
-  showReport();
+
+  // 先算分
+  const { dimScores, total } = calcScores();
+  const level = getLevel(total);
+
+  // 按钮显示加载状态
+  const btn = document.getElementById('btnSubmitCard');
+  const originalText = btn.textContent;
+  btn.textContent = '正在提交…';
+  btn.classList.add('loading');
+  btn.disabled = true;
+
+  let aiReport = null;
+
+  // 尝试走 Supabase + Edge Function 流程
+  if (supabase) {
+    try {
+      // 第 1 步：答题记录存到 quiz_responses 表
+      const { data: responseData, error: responseError } = await supabase
+        .from('quiz_responses')
+        .insert({
+          answers: answers,
+          total_score: total,
+          level: level.name,
+          dim_scores: dimScores,
+        })
+        .select('id')
+        .single();
+
+      if (responseError) {
+        console.warn('quiz_responses 写入失败:', responseError.message);
+      }
+
+      if (responseData && responseData.id) {
+        // 第 2 步：调 Edge Function 生成 AI 报告
+        try {
+          const edgeRes = await fetch(EDGE_FUNCTION_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+            },
+            body: JSON.stringify({
+              response_id: responseData.id,
+              answers: answers,
+              dim_scores: dimScores,
+              total_score: total,
+              level: level.name,
+            }),
+          });
+
+          const edgeData = await edgeRes.json();
+          if (edgeData.success && edgeData.report) {
+            aiReport = edgeData.report;
+            console.log('AI 报告生成成功');
+          } else {
+            console.warn('Edge Function 返回失败:', edgeData.error || '未知错误');
+          }
+        } catch (edgeErr) {
+          console.warn('Edge Function 调用异常:', edgeErr.message);
+        }
+      }
+    } catch (err) {
+      console.warn('Supabase 流程异常，降级到本地报告:', err.message);
+    }
+  } else {
+    console.warn('Supabase 未初始化，使用本地报告模式');
+  }
+
+  // 恢复按钮
+  btn.textContent = originalText;
+  btn.classList.remove('loading');
+  btn.disabled = false;
+
+  // 渲染报告（AI 增强 or 本地兜底）
+  showReport(dimScores, total, level, aiReport);
 }
 
 // ========================================
@@ -1599,9 +1850,77 @@ function genLearningPath(strong, medium, weak) {
   return steps.slice(0, 3);
 }
 
-function showReport() {
-  const { dimScores, total } = calcScores();
-  const level = getLevel(total);
+// ========================================
+// 简单的 Markdown → HTML 转换
+// （处理 DeepSeek 返回的报告文本）
+// ========================================
+function simpleMarkdownToHTML(md) {
+  if (!md) return '';
+
+  let html = md;
+
+  // 转义 HTML 特殊字符（防止注入）
+  html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  // 标题 ### → h3
+  html = html.replace(/^###\s*(.+)$/gm, '<h3>$1</h3>');
+
+  // 加粗 **text**
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+  // 水平线 ---
+  html = html.replace(/^---$/gm, '<hr>');
+
+  // 无序列表 - item
+  html = html.replace(/^-\s+(.+)$/gm, '<li>$1</li>');
+  // 把连续的 <li> 包裹进 <ul>
+  html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+
+  // Markdown 表格 → HTML 表格
+  html = html.replace(/^\|(.+)\|$/gm, function(match) {
+    const cells = match.split('|').filter(c => c.trim() !== '');
+    const isHeader = /^\s*[-:]+\s*$/.test(cells[0] || '');
+    if (isHeader) return ''; // 跳过分隔行
+    const tag = /^\|[-:]+\|$/.test(match) ? '' : 'td';
+    const row = cells.map(c => '<td>' + c.trim() + '</td>').join('');
+    return '<tr>' + row + '</tr>';
+  });
+  // 把连续的 <tr> 包裹进 <table>
+  html = html.replace(/(<tr>.*<\/tr>\n?)+/g, '<table>$&</table>');
+
+  // 段落：把剩余的独立文本行用 <p> 包裹
+  const lines = html.split('\n');
+  const result = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) { result.push(''); continue; }
+    // 已经是 HTML 标签的行不包裹
+    if (line.startsWith('<h3>') || line.startsWith('<hr') || line.startsWith('<ul>') ||
+        line.startsWith('<li>') || line.startsWith('</ul>') || line.startsWith('<table>') ||
+        line.startsWith('<tr>') || line.startsWith('<td>') || line.startsWith('</table>') ||
+        line.startsWith('</tr>') || line.startsWith('</td>') || line.startsWith('<p>')) {
+      result.push(line);
+    } else {
+      result.push('<p>' + line + '</p>');
+    }
+  }
+  html = result.join('\n');
+
+  return html;
+}
+
+// ========================================
+// 报告渲染（支持 AI 增强 + 本地兜底）
+// ========================================
+function showReport(dimScores, total, level, aiReport) {
+  // 兼容旧调用：无参数时自己算
+  if (!dimScores) {
+    const scores = calcScores();
+    dimScores = scores.dimScores;
+    total = scores.total;
+    level = getLevel(total);
+  }
+
   const summary = genSummary(dimScores, total);
 
   const strong=[], medium=[], weak=[];
@@ -1623,6 +1942,22 @@ function showReport() {
     '<span class="report-score-big">'+total+'</span><span class="report-score-outof">/ 36</span>' +
     '<div><span class="report-level-tag">'+level.name+'</span></div>' +
     '<div class="report-level-desc">'+level.desc+'</div>';
+
+  // ---- AI 报告 or 本地兜底 ----
+  const aiWrap = document.getElementById('aiReportWrap');
+  const aiContent = document.getElementById('aiReportContent');
+  const fallbackNote = document.getElementById('reportFallbackNote');
+
+  if (aiReport && aiReport.full_text) {
+    // AI 报告可用 → 展示 AI 分析
+    aiWrap.style.display = 'block';
+    fallbackNote.style.display = 'none';
+    aiContent.innerHTML = simpleMarkdownToHTML(aiReport.full_text);
+  } else {
+    // AI 不可用 → 隐藏 AI 区，显示兜底提示
+    aiWrap.style.display = 'none';
+    fallbackNote.style.display = 'block';
+  }
 
   drawRadar(dimScores);
   renderDimCards([...strong, ...weak, ...medium]);
