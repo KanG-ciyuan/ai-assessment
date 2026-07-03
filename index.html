@@ -1,0 +1,1861 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 能力测评</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* ========================================
+   CSS 变量
+   ======================================== */
+:root {
+  --bg:        #ffffff;
+  --bg-warm:   #fafaf9;
+  --text:      #1a1a1a;
+  --text-mid:  #6b6b6b;
+  --text-dim:  #a3a3a3;
+  --border:    #e8e8e6;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 2px 12px rgba(0,0,0,0.06);
+  --radius:    14px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ========================================
+   页面切换
+   ======================================== */
+.page { display: none; min-height: 100vh; }
+.page.active { display: flex; }
+
+/* ========================================
+   起始页 — 暗色沉浸主题
+   ======================================== */
+.start-page {
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 65% 45%, #1a1025 0%, #0d0a12 50%, #08080c 100%);
+  padding: 0;
+  text-align: left;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 背景光晕层 */
+.start-page::before {
+  content: '';
+  position: absolute;
+  top: -25%;
+  right: -8%;
+  width: 55%;
+  height: 130%;
+  background: radial-gradient(ellipse, rgba(110,70,190,0.13) 0%, rgba(80,40,150,0.04) 40%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+.start-page::after {
+  content: '';
+  position: absolute;
+  bottom: -15%;
+  left: -5%;
+  width: 35%;
+  height: 70%;
+  background: radial-gradient(ellipse, rgba(60,30,120,0.08) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 粒子画布 */
+#particleCanvas {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 内容容器 — 左右布局 */
+.hero-container {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1200px;
+  width: 100%;
+  padding: 0 64px;
+  gap: 20px;
+}
+
+/* 左侧文字区 */
+.hero-left {
+  flex: 0 0 50%;
+  min-width: 0;
+  padding-right: 20px;
+}
+
+/* 顶部品牌小标 */
+.hero-brand {
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 2.5px;
+  color: rgba(255,255,255,0.28);
+  margin-bottom: 52px;
+}
+
+/* 主标题 */
+.hero-title {
+  font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  font-size: clamp(50px, 6.5vw, 78px);
+  font-weight: 600;
+  letter-spacing: -1px;
+  line-height: 1.03;
+  color: #ede4f7;
+  margin-bottom: 8px;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* 副标题 */
+.hero-title-sub {
+  font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  font-size: clamp(34px, 4.2vw, 54px);
+  font-weight: 400;
+  font-style: italic;
+  color: #9b87bb;
+  letter-spacing: -0.3px;
+  line-height: 1.15;
+  margin-bottom: 28px;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* 描述文字 */
+.hero-desc {
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  color: rgba(255,255,255,0.42);
+  line-height: 1.7;
+  margin-bottom: 12px;
+  letter-spacing: 0.3px;
+}
+
+/* 测评收获 */
+.hero-desc-extras {
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  color: rgba(255,255,255,0.28);
+  line-height: 1.6;
+  margin-bottom: 44px;
+  letter-spacing: 0.3px;
+}
+
+/* 开始按钮 */
+.btn-start {
+  display: inline-block;
+  padding: 18px 56px;
+  background: linear-gradient(135deg, #7c5cbf 0%, #5e3d99 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 50px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Inter', -apple-system, sans-serif;
+  letter-spacing: 0.6px;
+  position: relative;
+  box-shadow: 0 0 30px rgba(110,70,180,0.25), 0 0 60px rgba(110,70,180,0.08);
+  animation: btn-pulse 3.5s ease-in-out infinite;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+}
+
+.btn-start:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 45px rgba(130,90,210,0.45), 0 0 90px rgba(110,70,180,0.18);
+}
+.btn-start:active {
+  transform: scale(0.97);
+}
+
+@keyframes btn-pulse {
+  0%, 100% { box-shadow: 0 0 30px rgba(110,70,180,0.25), 0 0 60px rgba(110,70,180,0.08); }
+  50%      { box-shadow: 0 0 42px rgba(130,90,210,0.40), 0 0 85px rgba(110,70,180,0.15); }
+}
+
+/* 底部小字 */
+.hero-footnote {
+  margin-top: 36px;
+  font-size: 13px;
+  color: rgba(255,255,255,0.7);
+  letter-spacing: 0.5px;
+  font-family: 'Inter', -apple-system, sans-serif;
+}
+
+/* KanG Logo */
+.hero-kang-logo {
+  margin-top: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.hero-logo-word {
+  font-size: 2.6rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-style: italic;
+  transform: skewX(-8deg);
+  background: linear-gradient(135deg, #ede4f7 0%, #c4b0de 30%, #9b87bb 60%, #7c5cbf 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  display: inline-block;
+  position: relative;
+}
+
+.hero-logo-underline {
+  width: 80px;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #c4b0de, #9b87bb, transparent);
+  border-radius: 3px;
+  margin-top: 4px;
+}
+
+
+/* 右侧视觉区 — 上下布局：雷达图 + 演示卡片 */
+.hero-right {
+  flex: 0 0 46%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  position: relative;
+}
+
+/* ---- 上部：太阳系模拟 ---- */
+.hero-orrery {
+  position: relative;
+  width: 280px;
+  height: 280px;
+  flex-shrink: 0;
+}
+
+/* 中心太阳 */
+.orrery-sun {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ede4f7, #9b87bb 50%, #5e3d99 100%);
+  box-shadow: 0 0 30px rgba(155,135,187,0.5), 0 0 60px rgba(120,90,180,0.25), 0 0 100px rgba(100,70,160,0.12);
+  z-index: 2;
+  animation: sun-glow 3s ease-in-out infinite;
+}
+@keyframes sun-glow {
+  0%, 100% { box-shadow: 0 0 30px rgba(155,135,187,0.5), 0 0 60px rgba(120,90,180,0.25), 0 0 100px rgba(100,70,160,0.12); }
+  50%      { box-shadow: 0 0 40px rgba(180,160,210,0.6), 0 0 80px rgba(140,110,200,0.35), 0 0 120px rgba(110,80,170,0.18); }
+}
+
+/* 轨道 */
+.orrery-orbit {
+  position: absolute;
+  top: 50%; left: 50%;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.04);
+  pointer-events: none;
+}
+.orrery-orbit:nth-child(2) { /* 轨道1 */
+  width: 100px; height: 100px;
+  margin-left: -50px; margin-top: -50px;
+  animation: orb-spin 10s linear infinite;
+}
+.orrery-orbit:nth-child(3) { /* 轨道2 */
+  width: 160px; height: 160px;
+  margin-left: -80px; margin-top: -80px;
+  border-color: rgba(255,255,255,0.03);
+  animation: orb-spin 16s linear infinite reverse;
+}
+.orrery-orbit:nth-child(4) { /* 轨道3 */
+  width: 230px; height: 230px;
+  margin-left: -115px; margin-top: -115px;
+  border-color: rgba(255,255,255,0.025);
+  animation: orb-spin 22s linear infinite;
+}
+@keyframes orb-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* 行星 — 绑在轨道上的圆点 */
+.orrery-planet {
+  position: absolute;
+  border-radius: 50%;
+  top: -3px; left: 50%;
+  transform: translateX(-50%);
+}
+.orrery-planet.p1 { /* 轨道1 — 最近 */
+  width: 6px; height: 6px;
+  background: #c4b0de;
+  box-shadow: 0 0 8px rgba(180,150,220,0.5);
+}
+.orrery-planet.p2 { /* 轨道2 */
+  width: 8px; height: 8px;
+  background: #9b87bb;
+  box-shadow: 0 0 10px rgba(155,135,187,0.5);
+}
+.orrery-planet.p3 { /* 轨道3 — 最远 */
+  width: 5px; height: 5px;
+  background: rgba(200,185,220,0.8);
+  box-shadow: 0 0 6px rgba(200,185,220,0.4);
+}
+
+/* 外层柔光 */
+.orrery-ambient {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 260px; height: 260px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(110,70,180,0.08) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* ---- 下部：演示卡片 ---- */
+.demo-card {
+  position: relative;
+  width: 340px;
+  background: rgba(20,16,30,0.9);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03) inset;
+  flex-shrink: 0;
+}
+
+/* 标题栏 */
+.demo-card-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 18px;
+  background: rgba(255,255,255,0.03);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.demo-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+}
+.demo-dot:nth-child(2) { background: rgba(255,255,255,0.25); }
+.demo-dot:nth-child(3) { background: rgba(255,255,255,0.3); }
+.demo-titlebar-text {
+  margin-left: 8px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.3);
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 0.5px;
+}
+.demo-badge {
+  margin-left: auto;
+  font-size: 9px;
+  font-weight: 600;
+  color: rgba(180,150,220,0.6);
+  letter-spacing: 1.5px;
+  background: rgba(180,150,220,0.08);
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+/* 演示内容区 */
+.demo-card-body {
+  position: relative;
+  height: 240px;
+  overflow: hidden;
+}
+
+/* 三帧画面 — JS 控制 */
+.demo-frame {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  padding: 24px 22px;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.demo-frame.active {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* Frame 1 — 答题界面 */
+.demo-q-num {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.3);
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+}
+.demo-q-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #e8e0f0;
+  line-height: 1.4;
+  margin-bottom: 22px;
+}
+.demo-option {
+  padding: 11px 16px;
+  border-radius: 8px;
+  margin-bottom: 7px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.4);
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.04);
+  position: relative;
+}
+.demo-option.selected {
+  background: rgba(120,90,180,0.2);
+  border-color: rgba(140,110,200,0.3);
+  color: #c4b0de;
+}
+.demo-option.selected::after {
+  content: '✓';
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  color: #9b87bb;
+}
+.demo-progress {
+  margin-top: auto;
+  height: 2px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 1px;
+}
+.demo-progress-fill {
+  height: 100%;
+  width: 25%;
+  background: rgba(160,130,200,0.4);
+  border-radius: 1px;
+}
+
+/* Frame 2 — 雷达图 */
+.demo-radar-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.demo-radar-label {
+  text-align: center;
+  margin-top: 8px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.3);
+}
+
+/* Frame 3 — 报告卡片 */
+.demo-report-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #e0d6f0;
+  margin-bottom: 16px;
+  text-align: center;
+}
+.demo-report-bar {
+  margin-bottom: 12px;
+}
+.demo-report-bar-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  margin-bottom: 4px;
+}
+.demo-report-bar-label span:first-child { color: rgba(255,255,255,0.45); }
+.demo-report-bar-label span:last-child  { color: rgba(255,255,255,0.25); }
+.demo-report-bar-track {
+  height: 4px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.demo-report-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #7c5cbf, #9b87bb);
+}
+.demo-report-tag {
+  display: inline-block;
+  margin-top: 14px;
+  padding: 4px 14px;
+  background: rgba(140,110,200,0.2);
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #b8a0d4;
+  text-align: center;
+}
+
+/* 底部控制条 */
+.demo-card-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 18px;
+  border-top: 1px solid rgba(255,255,255,0.04);
+  background: rgba(255,255,255,0.01);
+}
+.demo-ctrl-dot {
+  width: 28px; height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: transparent;
+  transition: background 0.3s;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+.demo-ctrl-dot::after {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.25);
+  transition: background 0.3s, box-shadow 0.3s;
+}
+.demo-ctrl-dot:hover::after {
+  background: rgba(255,255,255,0.5);
+}
+.demo-ctrl-dot.active::after {
+  background: #9b87bb;
+  box-shadow: 0 0 8px rgba(155,135,187,0.6);
+}
+.demo-ctrl-text {
+  font-size: 9px;
+  color: rgba(255,255,255,0.2);
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 0.5px;
+}
+
+/* 动画入场 */
+.hero-container {
+  animation: hero-in 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+@keyframes hero-in {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ========================================
+   答题页
+   ======================================== */
+.quiz-page {
+  flex-direction: column;
+  background: var(--bg-warm);
+}
+
+.quiz-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 28px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.quiz-back {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--text-dim);
+  padding: 4px 8px;
+  font-family: inherit;
+  transition: color 0.2s;
+}
+.quiz-back:hover { color: var(--text); }
+
+.quiz-dim-badge {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 1px;
+}
+
+.quiz-count {
+  font-size: 13px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 进度条 */
+.quiz-progress-wrap {
+  padding: 0;
+  background: var(--bg);
+}
+
+.quiz-progress-bar {
+  height: 2px;
+  background: #e8e8e6;
+}
+.quiz-progress-fill {
+  height: 100%;
+  background: #1a1a1a;
+  transition: width 0.4s ease;
+}
+
+.quiz-progress-text {
+  font-size: 12px;
+  color: var(--text-dim);
+  text-align: right;
+  padding: 8px 28px 0;
+}
+
+/* 题目卡片 */
+.quiz-card-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+}
+
+.quiz-card {
+  background: var(--bg);
+  border-radius: var(--radius);
+  padding: 44px 44px 36px;
+  box-shadow: var(--shadow-sm);
+  max-width: 560px;
+  width: 100%;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.quiz-card.fade-out {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.quiz-card-number {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+  margin-bottom: 14px;
+}
+
+.quiz-card-question {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.4;
+  margin-bottom: 32px;
+  letter-spacing: -0.3px;
+}
+
+/* 选项 */
+.quiz-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.quiz-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 15px 20px;
+  background: #f6f6f5;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  color: var(--text);
+  cursor: pointer;
+  font-family: inherit;
+  line-height: 1.5;
+  text-align: left;
+  transition: background 0.12s ease, transform 0.12s ease;
+}
+
+.quiz-option:hover {
+  background: #ededeb;
+}
+
+.quiz-option.selected {
+  background: #1a1a1a;
+  color: #ffffff;
+  transform: scale(1.015);
+}
+
+.quiz-option-letter {
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.35;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+.quiz-option.selected .quiz-option-letter {
+  opacity: 0.6;
+}
+
+/* 卡片底部 */
+.quiz-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 32px;
+}
+
+.btn-prev {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 14px;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 8px 0;
+  visibility: hidden;
+  transition: color 0.2s;
+}
+.btn-prev:hover { color: var(--text); }
+
+.btn-submit-card {
+  margin-left: auto;
+  padding: 12px 32px;
+  background: #1a1a1a;
+  color: #ffffff;
+  border: none;
+  border-radius: 50px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.35s ease, transform 0.35s ease, box-shadow 0.2s ease;
+  pointer-events: none;
+}
+.btn-submit-card.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.btn-submit-card.visible:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+
+/* ========================================
+   报告页
+   ======================================== */
+.report-page {
+  flex-direction: column;
+  align-items: center;
+  background: var(--bg-warm);
+  padding: 0 24px 80px;
+}
+
+.report-inner {
+  max-width: 660px;
+  width: 100%;
+  padding-top: 56px;
+}
+
+/* Hero */
+.report-hero {
+  text-align: center;
+  padding-bottom: 44px;
+}
+
+.report-summary-line {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.5;
+  margin-bottom: 20px;
+  letter-spacing: -0.3px;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.report-score-big {
+  font-size: 80px;
+  font-weight: 900;
+  color: var(--text);
+  line-height: 1;
+  letter-spacing: -3px;
+}
+
+.report-score-outof {
+  font-size: 18px;
+  color: var(--text-dim);
+}
+
+.report-level-tag {
+  display: inline-block;
+  margin-top: 14px;
+  padding: 6px 22px;
+  background: #1a1a1a;
+  color: #ffffff;
+  border-radius: 50px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+}
+
+.report-level-desc {
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--text-mid);
+}
+
+/* 雷达图 */
+.report-radar-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 44px;
+}
+.report-radar-wrap svg {
+  width: 280px; height: 280px;
+}
+
+@keyframes radar-grow {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+.radar-polygon-anim {
+  transform-origin: 140px 140px;
+  animation: radar-grow 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 维度卡片 */
+.report-dim-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 48px;
+}
+
+.report-dim-card {
+  background: var(--bg);
+  border-radius: var(--radius);
+  padding: 26px 30px;
+  box-shadow: var(--shadow-sm);
+}
+
+.report-dim-card.border-strong { box-shadow: 0 1px 4px rgba(46,125,50,0.12); }
+
+.dim-card-row1 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.dim-card-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.dim-card-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 12px;
+  border-radius: 10px;
+  letter-spacing: 1px;
+}
+.badge-strong { background: #e8f5e9; color: #2e7d32; }
+.badge-medium { background: #f0f0f0; color: #555555; }
+.badge-weak   { background: #fff3e0; color: #e65100; }
+
+.dim-card-score-line {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+}
+
+.dim-card-analysis {
+  font-size: 14px;
+  color: #444;
+  line-height: 1.8;
+  margin-bottom: 10px;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.dim-card-suggestions {
+  list-style: none;
+  padding: 0;
+}
+.dim-card-suggestions li {
+  position: relative;
+  padding-left: 14px;
+  font-size: 13px;
+  color: var(--text-mid);
+  line-height: 1.7;
+  margin-bottom: 5px;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+.dim-card-suggestions li::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 9px;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: #1a1a1a;
+}
+
+/* 时间线 */
+.report-timeline-title {
+  font-size: 19px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text);
+  margin-bottom: 32px;
+  letter-spacing: -0.3px;
+}
+
+.report-timeline {
+  position: relative;
+  padding-left: 26px;
+}
+.report-timeline::before {
+  content: '';
+  position: absolute;
+  left: 9px; top: 0; bottom: 0;
+  width: 1px;
+  background: #e0e0de;
+}
+
+.timeline-step {
+  position: relative;
+  margin-bottom: 32px;
+}
+.timeline-step:last-child { margin-bottom: 0; }
+
+.timeline-dot {
+  position: absolute;
+  left: -22px; top: 5px;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: #1a1a1a;
+}
+
+.timeline-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+.timeline-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+.timeline-desc {
+  font-size: 13px;
+  color: var(--text-mid);
+  line-height: 1.7;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* 得分表 */
+.report-score-table {
+  background: var(--bg);
+  border-radius: var(--radius);
+  padding: 26px 30px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 44px;
+}
+
+.score-table-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.score-table-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #f2f2f0;
+  font-size: 14px;
+}
+.score-table-row:last-child {
+  border-bottom: none;
+  font-weight: 700;
+  padding-top: 14px;
+}
+.score-table-label { color: var(--text); }
+.score-table-score { color: var(--text-mid); }
+.score-table-level { font-size: 13px; min-width: 44px; text-align: right; }
+.score-table-level.strong { color: #2e7d32; font-weight: 600; }
+.score-table-level.medium { color: #555555; }
+.score-table-level.weak   { color: #e65100; }
+
+/* Footer */
+.report-footer {
+  text-align: center;
+  padding-top: 36px;
+  border-top: 1px solid #e8e8e6;
+}
+
+.btn-restart {
+  padding: 11px 30px;
+  background: #1a1a1a;
+  color: #ffffff;
+  border: none;
+  border-radius: 50px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: box-shadow 0.2s ease;
+}
+.btn-restart:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+
+.footer-note {
+  margin-top: 16px;
+  font-size: 11px;
+  color: #bbbbbb;
+  letter-spacing: 0.5px;
+}
+
+/* 通用动画 */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.anim-fade-up {
+  animation: fadeInUp 0.55s ease forwards;
+}
+
+/* ========================================
+   响应式
+   ======================================== */
+@media (max-width: 768px) {
+  /* 起始页 — 左右变上下 */
+  .hero-container {
+    flex-direction: column;
+    padding: 0 32px;
+    gap: 20px;
+    text-align: center;
+  }
+  .hero-left {
+    flex: none;
+    order: 2;
+  }
+  .hero-right {
+    flex: none;
+    order: 1;
+  }
+  .hero-brand {
+    margin-bottom: 28px;
+    font-size: 10px;
+    letter-spacing: 2px;
+  }
+  .hero-title {
+    font-size: 42px;
+  }
+  .hero-title-sub {
+    font-size: 28px;
+    margin-bottom: 20px;
+  }
+  .hero-desc {
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+  .hero-desc-extras {
+    font-size: 12px;
+    margin-bottom: 32px;
+  }
+  .btn-start {
+    padding: 15px 44px;
+    font-size: 15px;
+  }
+  .hero-footnote {
+    margin-top: 28px;
+    font-size: 12px;
+  }
+  .hero-kang-logo {
+    align-items: center;
+    margin-top: 22px;
+  }
+  .hero-logo-word {
+    font-size: 2rem;
+  }
+  .hero-logo-underline {
+    width: 60px;
+  }
+  .hero-orrery {
+    width: 200px;
+    height: 200px;
+  }
+  .orrery-ambient {
+    width: 180px; height: 180px;
+  }
+  .demo-card {
+    width: 280px;
+  }
+  .demo-card-body {
+    height: 200px;
+  }
+
+  /* 答题页 */
+  .quiz-topbar { padding: 14px 18px; }
+  .quiz-card { padding: 28px 22px 24px; }
+  .quiz-card-question { font-size: 18px; margin-bottom: 24px; }
+  .quiz-option { padding: 13px 16px; font-size: 14px; }
+
+  /* 报告页 */
+  .report-inner { padding-top: 36px; }
+  .report-hero { padding-bottom: 30px; }
+  .report-score-big { font-size: 60px; letter-spacing: -2px; }
+  .report-summary-line { font-size: 17px; }
+  .report-radar-wrap svg { width: 240px; height: 240px; }
+  .report-dim-card { padding: 20px 22px; }
+  .report-dim-cards { gap: 10px; }
+  .report-timeline-title { font-size: 17px; margin-bottom: 24px; }
+  .report-score-table { padding: 20px 22px; }
+  .score-table-row { font-size: 13px; }
+  .dim-card-name { font-size: 15px; }
+  .dim-card-analysis { font-size: 13px; line-height: 1.7; }
+  .dim-card-suggestions li { font-size: 12px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ========================================
+     起始页 — 暗色沉浸
+     ======================================== -->
+<div class="page active start-page" id="startPage">
+  <canvas id="particleCanvas"></canvas>
+
+  <div class="hero-container">
+    <!-- 左侧文字 -->
+    <div class="hero-left">
+      <div class="hero-brand">AI CAPABILITY ASSESSMENT</div>
+      <h1 class="hero-title">AI 能力测评</h1>
+      <p class="hero-title-sub">你的 AI 能力在哪个段位？</p>
+      <p class="hero-desc">12 道题 · 5 个维度 · 看清你的 AI 强项与短板</p>
+      <p class="hero-desc-extras">测评后你将获得：五维度雷达图分析、个性化学习路径建议、针对性工具推荐</p>
+      <button class="btn-start" onclick="goToQuiz()">开始测评</button>
+      <div class="hero-footnote">测评报告由 AI 大模型驱动 · 为你生成个性化分析</div>
+
+      <!-- KanG Logo -->
+      <div class="hero-kang-logo">
+        <span class="hero-logo-word">KanG</span>
+        <div class="hero-logo-underline"></div>
+      </div>
+    </div>
+
+    <!-- 右侧视觉锚点 -->
+    <!-- 右侧 — 雷达图 + 演示卡片 -->
+    <div class="hero-right">
+
+      <!-- 上部：太阳系模拟 -->
+      <div class="hero-orrery">
+        <div class="orrery-ambient"></div>
+        <!-- 轨道 + 行星 -->
+        <div class="orrery-orbit"><div class="orrery-planet p1"></div></div>
+        <div class="orrery-orbit"><div class="orrery-planet p2"></div></div>
+        <div class="orrery-orbit"><div class="orrery-planet p3"></div></div>
+        <!-- 中心太阳 -->
+        <div class="orrery-sun"></div>
+      </div>
+
+      <!-- 下部：演示卡片 -->
+      <div class="demo-card">
+        <!-- 浏览器标题栏 -->
+        <div class="demo-card-titlebar">
+          <span class="demo-dot"></span>
+          <span class="demo-dot"></span>
+          <span class="demo-dot"></span>
+          <span class="demo-titlebar-text">AI 能力测评</span>
+          <span class="demo-badge">DEMO</span>
+        </div>
+        <!-- 演示内容区 -->
+        <div class="demo-card-body">
+
+          <!-- 帧 1：答题界面 -->
+          <div class="demo-frame">
+            <div class="demo-q-num">QUESTION 03</div>
+            <div class="demo-q-title">你使用 AI 工具有多频繁？</div>
+            <div class="demo-option">几乎不使用</div>
+            <div class="demo-option selected">经常用，几乎每天</div>
+            <div class="demo-option">偶尔用，每周一两次</div>
+            <div class="demo-option">重度使用，每天多次</div>
+            <div class="demo-progress"><div class="demo-progress-fill"></div></div>
+          </div>
+
+          <!-- 帧 2：雷达图 -->
+          <div class="demo-frame">
+            <div class="demo-radar-area">
+              <svg width="170" height="170" viewBox="0 0 170 170">
+                <polygon points="85,15 146,62 129,134 41,134 24,62" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="0.8"/>
+                <polygon points="85,40 123,63 112,108 58,108 47,63" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/>
+                <polygon points="85,20 140,64 124,130 46,130 30,64" fill="rgba(180,140,220,0.08)" stroke="#9b87bb" stroke-width="1.2" stroke-linejoin="round"/>
+                <circle cx="85" cy="20" r="3" fill="#c4b0de"/>
+                <circle cx="140" cy="64" r="3" fill="#9b87bb"/>
+                <circle cx="124" cy="130" r="3" fill="#c4b0de"/>
+                <circle cx="46" cy="130" r="3" fill="rgba(255,255,255,0.5)"/>
+                <circle cx="30" cy="64" r="3" fill="rgba(255,255,255,0.4)"/>
+                <circle cx="85" cy="85" r="3.5" fill="#ede4f7"/>
+              </svg>
+            </div>
+            <div class="demo-radar-label">五维度雷达图分析</div>
+          </div>
+
+          <!-- 帧 3：报告卡片 -->
+          <div class="demo-frame">
+            <div class="demo-report-title">你的 AI 能力画像</div>
+            <div class="demo-report-bar">
+              <div class="demo-report-bar-label"><span>AI 认知</span><span>7/9</span></div>
+              <div class="demo-report-bar-track"><div class="demo-report-bar-fill" style="width:78%"></div></div>
+            </div>
+            <div class="demo-report-bar">
+              <div class="demo-report-bar-label"><span>工具掌握</span><span>6/9</span></div>
+              <div class="demo-report-bar-track"><div class="demo-report-bar-fill" style="width:67%"></div></div>
+            </div>
+            <div class="demo-report-bar">
+              <div class="demo-report-bar-label"><span>使用频率</span><span>5/6</span></div>
+              <div class="demo-report-bar-track"><div class="demo-report-bar-fill" style="width:83%; background:linear-gradient(90deg,#7c5cbf,#c4b0de)"></div></div>
+            </div>
+            <div class="demo-report-bar">
+              <div class="demo-report-bar-label"><span>学习意愿</span><span>4/6</span></div>
+              <div class="demo-report-bar-track"><div class="demo-report-bar-fill" style="width:67%"></div></div>
+            </div>
+            <div class="demo-report-bar">
+              <div class="demo-report-bar-label"><span>行业应用</span><span>3/6</span></div>
+              <div class="demo-report-bar-track"><div class="demo-report-bar-fill" style="width:50%; background:linear-gradient(90deg,#7c5cbf,#9b87bb)"></div></div>
+            </div>
+            <div style="text-align:center">
+              <span class="demo-report-tag">进阶者</span>
+            </div>
+          </div>
+
+        </div>
+        <!-- 底部控制条 -->
+        <div class="demo-card-ctrl">
+          <span class="demo-ctrl-dot active" id="ctrlDot0" onclick="switchDemoFrame(0)"></span>
+          <span class="demo-ctrl-dot" id="ctrlDot1" onclick="switchDemoFrame(1)"></span>
+          <span class="demo-ctrl-dot" id="ctrlDot2" onclick="switchDemoFrame(2)"></span>
+          <span class="demo-ctrl-text">Demo 自动播放</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================
+     答题页
+     ======================================== -->
+<div class="page quiz-page" id="quizPage">
+  <div class="quiz-topbar">
+    <button class="quiz-back" onclick="goBack()">←</button>
+    <div class="quiz-dim-badge" id="quizDimBadge">AI 认知</div>
+    <div class="quiz-count" id="quizCountTop">1 / 12</div>
+  </div>
+
+  <div class="quiz-progress-wrap">
+    <div class="quiz-progress-bar">
+      <div class="quiz-progress-fill" id="quizProgressFill" style="width:0%"></div>
+    </div>
+    <div class="quiz-progress-text" id="quizProgressText">已答 0 / 12 题</div>
+  </div>
+
+  <div class="quiz-card-area">
+    <div class="quiz-card" id="quizCard">
+      <div class="quiz-card-number" id="quizCardNumber">QUESTION 01</div>
+      <div class="quiz-card-question" id="quizCardQuestion"></div>
+      <div class="quiz-options" id="quizOptions"></div>
+      <div class="quiz-card-actions">
+        <button class="btn-prev" id="btnPrev" onclick="prevQuestion()">← 上一题</button>
+        <button class="btn-submit-card" id="btnSubmitCard" onclick="submitQuiz()">查看我的报告</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================
+     报告页
+     ======================================== -->
+<div class="page report-page" id="reportPage">
+  <div class="report-inner">
+    <div class="report-hero" id="reportHero"></div>
+    <div class="report-radar-wrap">
+      <svg viewBox="0 0 280 280" id="radarSvg"></svg>
+    </div>
+    <div class="report-dim-cards" id="reportDimCards"></div>
+    <div class="report-timeline-title">你的 AI 学习路径</div>
+    <div class="report-timeline" id="reportTimeline"></div>
+    <div class="report-score-table" id="reportScoreTable"></div>
+    <div class="report-footer">
+      <button class="btn-restart" onclick="restartQuiz()">重新测评</button>
+      <div class="footer-note">AI 能力测评 · 公益项目</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========================================
+// 题目数据
+// ========================================
+const questions = [
+  { id:1,  dimension:'AI 认知', dimKey:'ai认知', text:'你对 AI 能做什么了解多少？',
+    options:['几乎不了解，只知道 ChatGPT 能聊天','知道 AI 能写文章、画图、翻译','知道 AI 能做数据分析、代码生成、自动化流程','清楚不同 AI 工具的适用场景和局限性'] },
+  { id:2,  dimension:'AI 认知', dimKey:'ai认知', text:'你平时关注 AI 发展趋势吗？',
+    options:['从来不关注','偶尔刷到 AI 新闻看一眼','定期看 AI 相关资讯、关注几个博主','订阅专业媒体/论文，能判断哪些是真实进展哪些是炒作'] },
+  { id:3,  dimension:'AI 认知', dimKey:'ai认知', text:'你对 AI 在自己行业/岗位里的应用了解多少？',
+    options:['不知道 AI 能怎么用在自己的领域','听说过一些案例但不确定怎么落地','能列举几个具体的应用场景','已经在用 AI 优化自己的工作了，还能给同事建议'] },
+  { id:4,  dimension:'使用频率', dimKey:'使用频率', text:'你使用 AI 工具有多频繁？',
+    options:['几乎不使用','偶尔用，每周一两次','经常用，几乎每天','重度使用，每天多次，工作学习都靠它'] },
+  { id:5,  dimension:'使用频率', dimKey:'使用频率', text:'你主要用 AI 来做什么？',
+    options:['没怎么用过','主要用来聊天、问简单问题','用来写文档、查资料、翻译、做 PPT','用来写代码、做数据分析、搭建自动化工作流'] },
+  { id:6,  dimension:'工具掌握', dimKey:'工具掌握', text:'你用过多少种 AI 工具？',
+    options:['几乎没用过','只用过一两个，比如 ChatGPT','用过三到五种不同类型的，比如聊天、绘图、搜索等','用过五种以上，会用 API、会配置插件或工作流'] },
+  { id:7,  dimension:'工具掌握', dimKey:'工具掌握', text:'你用 AI 工具到了什么深度？',
+    options:['只会问「帮我写个文案」这种简单问题','会写带要求的 Prompt，比如指定风格、字数、格式','会用 Prompt 模板、设置角色、进行多轮优化','会用 AI 搭工作流、连数据库、做自动化 Agent'] },
+  { id:8,  dimension:'工具掌握', dimKey:'工具掌握', text:'你有没有用过 AI 编程或开发工具？',
+    options:['没用过，也不会','听说过 Vibe Coding 等概念但没试过','用 AI 辅助写过简单代码或网页','用 AI 完整开发过产品，包含前端、数据库、部署'] },
+  { id:9,  dimension:'学习意愿', dimKey:'学习意愿', text:'你学习 AI 的意愿有多强？',
+    options:['不太想学，觉得跟自己关系不大','有点兴趣但不知道从哪开始','正在系统学习中，看课、看书、跟着教程做','持续深入学习，有明确学习计划，会主动找前沿内容'] },
+  { id:10, dimension:'学习意愿', dimKey:'学习意愿', text:'遇到 AI 相关问题时，你一般怎么解决？',
+    options:['直接放弃，觉得太难','问别人帮忙','自己搜教程、看文档解决','用 AI 帮自己解决 AI 问题，能举一反三'] },
+  { id:11, dimension:'行业应用', dimKey:'行业应用', text:'你有没有用 AI 优化过自己的工作流程？',
+    options:['没想过','想过但不知道怎么落地','尝试过，用 AI 做过简单的提效，比如自动整理数据、写邮件','已经把 AI 嵌入日常工作流，有可复用的方法'] },
+  { id:12, dimension:'行业应用', dimKey:'行业应用', text:'你对 AI 的商业或产业价值理解到哪个程度？',
+    options:['不了解','知道 AI 能帮企业降本增效但说不清具体怎么帮','能举出自己行业里的具体 AI 应用案例','能分析企业的 AI 切入点、投入产出比，有自己的方法论'] }
+];
+
+const dimConfig = {
+  'ai认知':   { name:'AI 认知', max:9,  qs:[1,2,3] },
+  '使用频率': { name:'使用频率', max:6,  qs:[4,5] },
+  '工具掌握': { name:'工具掌握', max:9,  qs:[6,7,8] },
+  '学习意愿': { name:'学习意愿', max:6,  qs:[9,10] },
+  '行业应用': { name:'行业应用', max:6,  qs:[11,12] }
+};
+const dimOrder = ['ai认知','使用频率','工具掌握','学习意愿','行业应用'];
+
+// ========================================
+// 答题状态
+// ========================================
+let currentQ = 0;
+let answers = {};
+
+// ========================================
+// 页面导航
+// ========================================
+function switchPage(showId) {
+  ['startPage','quizPage','reportPage'].forEach(id => {
+    document.getElementById(id).classList.toggle('active', id === showId);
+  });
+  window.scrollTo({ top: 0, behavior: 'instant' });
+}
+
+function goToQuiz() {
+  switchPage('quizPage');
+  buildQuiz();
+}
+
+function goBack() {
+  switchPage('startPage');
+}
+
+function buildQuiz() {
+  currentQ = 0;
+  answers = {};
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = questions[currentQ];
+  const card = document.getElementById('quizCard');
+  card.classList.add('fade-out');
+
+  setTimeout(() => {
+    document.getElementById('quizDimBadge').textContent = q.dimension;
+    document.getElementById('quizCountTop').textContent = (currentQ + 1) + ' / 12';
+    document.getElementById('quizProgressFill').style.width = Math.round((currentQ / 12) * 100) + '%';
+
+    const n = Object.keys(answers).length;
+    document.getElementById('quizProgressText').textContent = '已答 ' + n + ' / 12 题';
+
+    document.getElementById('quizCardNumber').textContent = 'QUESTION ' + String(q.id).padStart(2, '0');
+    document.getElementById('quizCardQuestion').textContent = q.text;
+
+    const opts = document.getElementById('quizOptions');
+    opts.innerHTML = '';
+    const letters = ['A','B','C','D'];
+    q.options.forEach((opt, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'quiz-option';
+      if (answers[q.id] === i) btn.classList.add('selected');
+      btn.innerHTML = '<span class="quiz-option-letter">' + letters[i] + '</span><span>' + opt + '</span>';
+      btn.addEventListener('click', () => selectOption(i));
+      opts.appendChild(btn);
+    });
+
+    const btnPrev = document.getElementById('btnPrev');
+    btnPrev.style.visibility = currentQ > 0 ? 'visible' : 'hidden';
+
+    const btnSub = document.getElementById('btnSubmitCard');
+    if (currentQ === questions.length - 1) {
+      btnSub.style.display = 'block';
+      btnSub.classList.toggle('visible', answers[q.id] !== undefined);
+    } else {
+      btnSub.style.display = 'none';
+      btnSub.classList.remove('visible');
+    }
+
+    card.classList.remove('fade-out');
+  }, 180);
+}
+
+function selectOption(index) {
+  const q = questions[currentQ];
+  if (answers[q.id] === index) return;
+  const wasAnswered = answers[q.id] !== undefined;
+  answers[q.id] = index;
+
+  document.querySelectorAll('.quiz-option').forEach((btn, i) => {
+    btn.classList.toggle('selected', i === index);
+  });
+
+  const n = Object.keys(answers).length;
+  document.getElementById('quizProgressText').textContent = '已答 ' + n + ' / 12 题';
+  document.getElementById('quizProgressFill').style.width = Math.round((currentQ / 12) * 100) + '%';
+
+  if (currentQ === questions.length - 1) {
+    document.getElementById('btnSubmitCard').classList.add('visible');
+  }
+
+  if (currentQ < questions.length - 1) {
+    setTimeout(() => { currentQ++; renderQuestion(); }, 400);
+  }
+}
+
+function prevQuestion() {
+  if (currentQ > 0) { currentQ--; renderQuestion(); }
+}
+
+function submitQuiz() {
+  const unanswered = questions.filter(q => answers[q.id] === undefined);
+  if (unanswered.length > 0) {
+    currentQ = questions.indexOf(unanswered[0]);
+    renderQuestion();
+    return;
+  }
+  showReport();
+}
+
+// ========================================
+// 得分 & 报告
+// ========================================
+function calcScores() {
+  const dimScores = {};
+  let total = 0;
+  dimOrder.forEach(key => {
+    const cfg = dimConfig[key];
+    let sum = 0;
+    cfg.qs.forEach(id => sum += (answers[id] || 0));
+    dimScores[key] = { score:sum, max:cfg.max, rate:Math.round(sum / cfg.max * 100) };
+    total += sum;
+  });
+  return { dimScores, total };
+}
+
+function getLevel(total) {
+  if (total >= 27) return { name:'探索者', desc:'你已经把 AI 融入日常，走在大多数人前面' };
+  if (total >= 18) return { name:'进阶者', desc:'你有不错的基础，正处在能力跃升的关键阶段' };
+  if (total >= 9)  return { name:'入门者', desc:'AI 世界刚刚对你打开，每一步都是收获' };
+  return { name:'初识者', desc:'一切从这里开始，最好的起点就是现在' };
+}
+
+const reportTemplates = {
+  'ai认知': {
+    name:'AI 认知',
+    strong:{ analysis:'你对 AI 的能力边界有清晰的认识，知道不同工具适合做什么、不适合做什么。这种全局视野让你在选择工具时更理性，不会被营销话术带着走。',
+      suggestions:['关注一两个前沿信息源（如机器之心、The Rundown AI），保持对行业动态的敏感度'] },
+    medium:{ analysis:'你对 AI 有基本了解，但知识面还可以再拓宽一些。多了解不同 AI 工具的定位，能帮你更高效地选对工具。',
+      suggestions:['每周花 10-15 分钟刷一下 AI 资讯','试着把「AI 能帮我做什么」这个问题带入日常，遇到重复工作就想一下'] },
+    weak:{ analysis:'你对 AI 的了解还比较有限。这很正常——AI 发展太快，很多人都是从零开始的。这个维度的提升会让后面的学习事半功倍。',
+      suggestions:['花 1 小时了解基础：什么是大语言模型、AI 能做什么、不能做什么','B 站搜索「AI 入门科普」，找播放量高的先看','试着每天用一次 AI 工具，哪怕只是问个简单问题，建立体感'] }
+  },
+  '使用频率': {
+    name:'使用频率',
+    strong:{ analysis:'AI 已经成为你日常的一部分，高频使用意味着你在不断积累实践经验。这种「手感」是看再多教程都替代不了的。',
+      suggestions:['尝试拓展使用场景——除了日常对话，试试用 AI 做数据分析、项目规划等更高阶的任务'] },
+    medium:{ analysis:'你会用 AI，但还没有形成习惯。偶尔用一次和每天用的效果差距很大——AI 像健身，频率比单次强度更重要。',
+      suggestions:['每天至少用一次 AI，哪怕只是让它帮你优化一封邮件','把 AI 工具固定在浏览器标签页或手机首屏，降低打开门槛'] },
+    weak:{ analysis:'你目前不怎么用 AI 工具，可能是因为没找到合适的场景。不用有压力，好的开始只需要一个简单的尝试。',
+      suggestions:['今天就用 ChatGPT 或 Kimi 做一件小事：让 AI 帮你规划周末菜谱、解释一个概念','从手机 App 开始，碎片时间就能用','先追求「用起来」——频率上去后质量自然会提升'] }
+  },
+  '工具掌握': {
+    name:'工具掌握',
+    strong:{ analysis:'你不仅用得多，而且用得深。会调 API、搭工作流、用多种工具——你已经从「用户」进化到「进阶玩家」了。',
+      suggestions:['尝试把多个工具串起来，比如用 AI 写脚本 + 自动化执行，搭建自己的效率系统'] },
+    medium:{ analysis:'你掌握了一些基础用法，会写简单的 Prompt，但工具的潜力还没完全挖掘。从「能用」到「会用」，中间差的就是一些技巧。',
+      suggestions:['学习 Prompt 工程基础：角色设定、分步指令、示例引导这三个技巧最实用','尝试一款没用过的 AI 工具类型（画图、做 PPT、数据分析），拓宽视野'] },
+    weak:{ analysis:'你在工具使用上还比较初级，可能只停留在最简单的问答。好消息是：AI 工具的门槛已经很低了，学会一个就能举一反三。',
+      suggestions:['从 ChatGPT 或 Kimi 开始，学会写带要求的 Prompt（指定长度、风格、步骤）','试试 AI 画图工具（如通义万相），免费，输入一句话就能出图','别怕犯错——Prompt 可以反复改，AI 不会不耐烦'] }
+  },
+  '学习意愿': {
+    name:'学习意愿',
+    strong:{ analysis:'你有很强的学习动力，遇到问题会主动解决。在 AI 领域，学习意愿本身就是最大的竞争力——技术更新太快，只有持续学习者才能跟上。',
+      suggestions:['考虑做一个学习输出——写学习笔记、录制教程，教别人是最好的学习方式'] },
+    medium:{ analysis:'你对 AI 有兴趣，但可能卡在「想学但不知道从哪下手」。其实不需要完美的学习计划，先挑一个感兴趣的方向钻进去就好。',
+      suggestions:['选一个具体方向先深入（AI 绘画、AI 编程、AI 办公提效），不要同时学太多','加入一两个免费的 AI 学习社群，别人的经验能帮你少走弯路'] },
+    weak:{ analysis:'你可能觉得 AI 跟自己关系不大，或者试过但受挫了。其实 AI 的学习曲线没有想象中陡——找到一个能立刻帮到你的场景，动力就来了。',
+      suggestions:['从解决一个你当前最烦的问题开始：让 AI 帮你写周报、整理会议纪要','找一个朋友一起学，互相分享发现，比一个人学有趣也更容易坚持','每天只花 5 分钟，小而持续比大步冲刺更有效'] }
+  },
+  '行业应用': {
+    name:'行业应用',
+    strong:{ analysis:'你已经把 AI 用到实际工作中了，甚至有自己的方法论。这是最难的一个维度——大多数人知道 AI 能干什么，但不一定能落实到自己的场景里。',
+      suggestions:['把你的经验整理成可复制的方法，分享给身边的人——既能帮到别人，也能帮你理清思路'] },
+    medium:{ analysis:'你知道 AI 有用，也试过一些场景，但还没有形成系统的方法。从「偶尔用用」到「融入工作流」，差的就是几个固定的使用模式。',
+      suggestions:['盘点你每周重复做的事情，挑 1-2 个用 AI 替代或辅助','在小红书或知乎搜「你的行业 + AI」，看看别人怎么用的'] },
+    weak:{ analysis:'你可能还没想过 AI 能在工作中帮到你。其实每个行业都有 AI 的切入点，只是需要换个视角。',
+      suggestions:['把你一天的工作内容列出来，在每个旁边标注「这件事 AI 能帮上忙吗」','搜「你的行业/岗位 + AI 应用」，看看别人怎么做的','从最简单的开始：用 AI 写邮件、做会议纪要、整理 Excel'] }
+  }
+};
+
+function genSummary(dimScores, total) {
+  const high = dimOrder.filter(k => dimScores[k].rate >= 80);
+  const low  = dimOrder.filter(k => dimScores[k].rate < 50);
+  if (total >= 30) return 'AI 已经融入你的工作和学习，你走在前列，继续保持探索的节奏。';
+  if (total >= 24 && low.length === 0) return '你对 AI 有全面的认知和实践，正处在从「熟练」到「精通」的跃升期。';
+  if (high.includes('学习意愿') && low.includes('工具掌握')) return '你对 AI 充满热情，正处于从 0 到 1 的起步阶段，动手实践是你最好的老师。';
+  if ((high.includes('工具掌握') || high.includes('使用频率')) && low.includes('行业应用')) return '你熟悉 AI 工具，但还没把它们变成工作利器——差的就是应用场景这一步。';
+  if (high.includes('ai认知') && high.includes('学习意愿') && low.length > 0) return '你对 AI 很有热情也有认知，现在最需要的是把手弄脏、多实践。';
+  if (low.length >= 3) return 'AI 世界刚刚对你打开大门，没关系，每一个高手都是从零开始的。';
+  if (dimOrder.filter(k => dimScores[k].rate >= 50 && dimScores[k].rate < 80).length >= 3) return '你正在 AI 路上稳步前进，各方面均衡发展，再加把劲就能突破。';
+  return '你的 AI 能力正在成长中，找到方向后进步会很快。';
+}
+
+function genLearningPath(strong, medium, weak) {
+  const steps = [];
+  if (weak.length > 0) {
+    const w = weak[0];
+    steps.push({ label:'第一步 · 立刻做', title:'补齐「'+w.name+'」短板', desc:w.suggestions[0] });
+  } else if (medium.length > 0) {
+    const m = medium[0];
+    steps.push({ label:'第一步 · 立刻做', title:'突破「'+m.name+'」瓶颈', desc:m.suggestions[0] });
+  } else if (strong.length > 0) {
+    steps.push({ label:'第一步 · 立刻做', title:'尝试一个全新领域', desc:'你已经很全面了，试着接触一个之前没碰过的 AI 方向（比如 AI 智能体搭建、开源模型本地部署），保持探索的乐趣。' });
+  }
+  if (medium.length > 0) {
+    const t = medium[0];
+    steps.push({ label:'第二步 · 一个月内', title:'深耕「'+t.name+'」', desc:t.suggestions[Math.min(1, t.suggestions.length-1)] || '系统提升'+t.name });
+  } else if (weak.length > 1) {
+    const w = weak[1];
+    steps.push({ label:'第二步 · 一个月内', title:'改善「'+w.name+'」', desc:w.suggestions[0] });
+  } else if (strong.length > 0) {
+    steps.push({ label:'第二步 · 一个月内', title:'拓展技能边界', desc:'尝试一款你还没用过的 AI 工具类型（如从文本对话拓展到 AI 绘图、AI 编程），拓宽工具视野。' });
+  }
+  if (strong.length > 0) {
+    const s = strong[strong.length-1];
+    steps.push({ label:'第三步 · 长期目标', title:'从「'+s.name+'」向深处走', desc:'把强项变成核心竞争力。尝试输出自己的方法论——写文章、做分享、帮身边人解决问题，教学相长。' });
+  } else if (medium.length > 0) {
+    const m = medium[medium.length-1];
+    steps.push({ label:'第三步 · 长期目标', title:'把「'+m.name+'」发展成强项', desc:'选择一个你最感兴趣的中等维度，集中精力深耕 3 个月。' });
+  } else {
+    steps.push({ label:'第三步 · 长期目标', title:'建立 AI 思维', desc:'当你把「AI 能不能帮忙」变成遇到问题时的本能反应，你的 AI 能力就已经内化了。' });
+  }
+  return steps.slice(0, 3);
+}
+
+function showReport() {
+  const { dimScores, total } = calcScores();
+  const level = getLevel(total);
+  const summary = genSummary(dimScores, total);
+
+  const strong=[], medium=[], weak=[];
+  dimOrder.forEach(key => {
+    const t = reportTemplates[key];
+    const rate = dimScores[key].rate;
+    const lvlKey = rate >= 80 ? 'strong' : rate >= 50 ? 'medium' : 'weak';
+    (rate >= 80 ? strong : rate >= 50 ? medium : weak).push({
+      key, name:t.name, score:dimScores[key].score, max:dimScores[key].max, rate,
+      analysis:t[lvlKey].analysis, suggestions:t[lvlKey].suggestions
+    });
+  });
+
+  const learningPath = genLearningPath(strong, medium, weak);
+  switchPage('reportPage');
+
+  document.getElementById('reportHero').innerHTML =
+    '<div class="report-summary-line">'+summary+'</div>' +
+    '<span class="report-score-big">'+total+'</span><span class="report-score-outof">/ 36</span>' +
+    '<div><span class="report-level-tag">'+level.name+'</span></div>' +
+    '<div class="report-level-desc">'+level.desc+'</div>';
+
+  drawRadar(dimScores);
+  renderDimCards([...strong, ...weak, ...medium]);
+
+  document.getElementById('reportTimeline').innerHTML = learningPath.map((s, i) =>
+    '<div class="timeline-step anim-fade-up" style="animation-delay:'+(i*0.15)+'s">' +
+    '<div class="timeline-dot"></div>' +
+    '<div class="timeline-label">'+s.label+'</div>' +
+    '<div class="timeline-title">'+s.title+'</div>' +
+    '<div class="timeline-desc">'+s.desc+'</div></div>'
+  ).join('');
+
+  let tbl = '<div class="score-table-title">得分一览</div>';
+  dimOrder.forEach(key => {
+    const d = dimScores[key];
+    const cls = d.rate >= 80 ? 'strong' : d.rate >= 50 ? 'medium' : 'weak';
+    const txt = d.rate >= 80 ? '强项' : d.rate >= 50 ? '中等' : '薄弱';
+    tbl += '<div class="score-table-row"><span class="score-table-label">'+dimConfig[key].name+'</span><span class="score-table-score">'+d.score+' / '+d.max+'</span><span class="score-table-level '+cls+'">'+txt+'</span></div>';
+  });
+  tbl += '<div class="score-table-row"><span class="score-table-label">总分</span><span class="score-table-score">'+total+' / 36</span><span class="score-table-level strong">'+level.name+'</span></div>';
+  document.getElementById('reportScoreTable').innerHTML = tbl;
+}
+
+function drawRadar(dimScores) {
+  const svg = document.getElementById('radarSvg');
+  const cx=140, cy=140, r=110;
+  const angles = [-90, -18, 54, 126, 198].map(d => d * Math.PI / 180);
+  let html = '';
+  [0.25, 0.5, 0.75, 1].forEach(lvl => {
+    const pts = angles.map(a => (cx+r*lvl*Math.cos(a))+','+(cy+r*lvl*Math.sin(a))).join(' ');
+    html += '<polygon points="'+pts+'" fill="none" stroke="'+(lvl===1?'#d4d4d2':'#ebebe9')+'" stroke-width="1"/>';
+  });
+  angles.forEach(a => {
+    html += '<line x1="'+cx+'" y1="'+cy+'" x2="'+(cx+r*Math.cos(a))+'" y2="'+(cy+r*Math.sin(a))+'" stroke="#ebebe9" stroke-width="1"/>';
+  });
+  const dataPts = dimOrder.map((key, i) => {
+    const rate = dimScores[key].rate / 100;
+    return (cx+r*rate*Math.cos(angles[i]))+','+(cy+r*rate*Math.sin(angles[i]));
+  }).join(' ');
+  html += '<polygon class="radar-polygon-anim" points="'+dataPts+'" fill="rgba(0,0,0,0.06)" stroke="#1a1a1a" stroke-width="1.5" stroke-linejoin="round"/>';
+  dimOrder.forEach((key, i) => {
+    const rate = dimScores[key].rate / 100;
+    html += '<circle cx="'+(cx+r*rate*Math.cos(angles[i]))+'" cy="'+(cy+r*rate*Math.sin(angles[i]))+'" r="3.5" fill="#1a1a1a"/>';
+  });
+  dimOrder.forEach((key, i) => {
+    const a = angles[i];
+    const lx = cx+(r+20)*Math.cos(a), ly = cy+(r+20)*Math.sin(a);
+    let anchor = 'middle';
+    if (lx < cx-12) anchor = 'end'; else if (lx > cx+12) anchor = 'start';
+    html += '<text x="'+lx+'" y="'+ly+'" text-anchor="'+anchor+'" dominant-baseline="middle" font-size="11" font-weight="600" fill="#5c5c5c" font-family="Inter,system-ui,sans-serif">'+dimConfig[key].name+'</text>';
+  });
+  svg.innerHTML = html;
+}
+
+function renderDimCards(dims) {
+  document.getElementById('reportDimCards').innerHTML = dims.map(dim => {
+    let border='', badgeCls='', badgeText='';
+    if (dim.rate >= 80) { border='border-strong'; badgeCls='badge-strong'; badgeText='强项'; }
+    else if (dim.rate >= 50) { border=''; badgeCls='badge-medium'; badgeText='中等'; }
+    else { border=''; badgeCls='badge-weak'; badgeText='薄弱'; }
+    return '<div class="report-dim-card '+border+' anim-fade-up">' +
+      '<div class="dim-card-row1"><div class="dim-card-name">'+dim.name+'</div><div class="dim-card-badge '+badgeCls+'">'+badgeText+'</div></div>' +
+      '<div class="dim-card-score-line">得分 '+dim.score+' / '+dim.max+'（得分率 '+dim.rate+'%）</div>' +
+      '<div class="dim-card-analysis">'+dim.analysis+'</div>' +
+      '<ul class="dim-card-suggestions">'+dim.suggestions.map(s => '<li>'+s+'</li>').join('')+'</ul></div>';
+  }).join('');
+}
+
+function restartQuiz() {
+  currentQ = 0; answers = {};
+  switchPage('quizPage');
+  buildQuiz();
+}
+
+// 键盘快捷键
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('quizPage').classList.contains('active')) return;
+  if (e.key >= '1' && e.key <= '4') selectOption(parseInt(e.key) - 1);
+});
+
+// ========================================
+// 起始页粒子动画
+// ========================================
+(function() {
+  const canvas = document.getElementById('particleCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  let particles = [];
+  const PARTICLE_COUNT = 80;
+
+  function resize() {
+    const page = document.getElementById('startPage');
+    const rect = page.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+  }
+
+  function createParticle() {
+    return {
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 1.2 + 0.3,
+      vx: (Math.random() - 0.5) * 0.25,
+      vy: (Math.random() - 0.5) * 0.25 - 0.1,
+      opacity: Math.random() * 0.4 + 0.1,
+      pulse: Math.random() * Math.PI * 2
+    };
+  }
+
+  function initParticles() {
+    resize();
+    particles = [];
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      particles.push(createParticle());
+    }
+  }
+
+  function animate() {
+    if (!document.getElementById('startPage').classList.contains('active')) {
+      requestAnimationFrame(animate);
+      return;
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    particles.forEach(p => {
+      // 飘浮
+      p.x += p.vx;
+      p.y += p.vy;
+
+      // 边界循环
+      if (p.x < -10) p.x = canvas.width + 10;
+      if (p.x > canvas.width + 10) p.x = -10;
+      if (p.y < -10) p.y = canvas.height + 10;
+      if (p.y > canvas.height + 10) p.y = -10;
+
+      // 闪烁
+      p.pulse += 0.008;
+      const alpha = p.opacity + Math.sin(p.pulse) * 0.15;
+
+      // 绘制粒子
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(180,160,220,' + Math.max(0.02, alpha) + ')';
+      ctx.fill();
+    });
+
+    // 画粒子间连线（距离近的）
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 100) {
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.strokeStyle = 'rgba(180,160,220,' + (0.04 * (1 - dist / 100)) + ')';
+          ctx.lineWidth = 0.4;
+          ctx.stroke();
+        }
+      }
+    }
+
+    requestAnimationFrame(animate);
+  }
+
+  // 页面切换时重新初始化
+  const origSwitch = switchPage;
+  switchPage = function(showId) {
+    origSwitch(showId);
+    if (showId === 'startPage') {
+      setTimeout(() => { resize(); }, 50);
+    }
+  };
+
+  window.addEventListener('resize', () => {
+    if (document.getElementById('startPage').classList.contains('active')) {
+      resize();
+    }
+  });
+
+  initParticles();
+  animate();
+})();
+
+// ========================================
+// Demo 卡片 — 帧切换（5s 自动 + 可点击）
+// ========================================
+(function() {
+  const frames = document.querySelectorAll('.demo-frame');
+  const dots = [
+    document.getElementById('ctrlDot0'),
+    document.getElementById('ctrlDot1'),
+    document.getElementById('ctrlDot2')
+  ];
+  if (!frames.length || !dots[0]) return;
+
+  let currentFrame = 0;
+  let autoTimer = null;
+
+  function showFrame(index) {
+    frames.forEach((f, i) => f.classList.toggle('active', i === index));
+    dots.forEach((d, i) => d.classList.toggle('active', i === index));
+    currentFrame = index;
+  }
+
+  function nextFrame() {
+    showFrame((currentFrame + 1) % 3);
+  }
+
+  function startAuto() {
+    stopAuto();
+    autoTimer = setInterval(nextFrame, 3000);
+  }
+
+  function stopAuto() {
+    if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+  }
+
+  // 暴露到全局，供 onclick 调用
+  window.switchDemoFrame = function(index) {
+    showFrame(index);
+    stopAuto();
+    autoTimer = setTimeout(startAuto, 6000); // 手动切换后等 6s 再恢复自动
+  };
+
+  // 初始启动
+  showFrame(0);
+  startAuto();
+})();
+</script>
+
+</body>
+</html>
