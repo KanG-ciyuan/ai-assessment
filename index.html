@@ -1493,11 +1493,11 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const EDGE_FUNCTION_URL = SUPABASE_URL + '/functions/v1/generate-report';
 
 // 初始化 Supabase 客户端（全局可用）
-let supabase = null;
+let supabaseClient = null;
 (function initSupabase() {
   try {
     if (typeof window.supabase !== 'undefined') {
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       console.log('Supabase 客户端初始化成功');
     } else {
       console.warn('Supabase SDK 未加载，将使用本地报告模式');
@@ -1671,10 +1671,10 @@ async function submitQuiz() {
   let aiReport = null;
 
   // 尝试走 Supabase + Edge Function 流程
-  if (supabase) {
+  if (supabaseClient) {
     try {
       // 第 1 步：答题记录存到 quiz_responses 表
-      const { data: responseData, error: responseError } = await supabase
+      const { data: responseData, error: responseError } = await supabaseClient
         .from('quiz_responses')
         .insert({
           answers: answers,
