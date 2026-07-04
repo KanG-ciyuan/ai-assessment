@@ -3352,7 +3352,7 @@ function drawRadar(dimScores) {
     const a = angles[i];
     const label = dimConfig[key].name;
     const labelWidth = [...label].reduce((w, ch) => w + (/[\u3400-\u9fff]/.test(ch) ? 10.5 : 6.3), 0);
-    const rawLx = cx+(r+8)*Math.cos(a), ly = cy+(r+8)*Math.sin(a);
+    const rawLx = cx+(r+20)*Math.cos(a), ly = cy+(r+20)*Math.sin(a);
     let lx = rawLx;
     let anchor = 'middle';
     if (rawLx < cx-12) {
