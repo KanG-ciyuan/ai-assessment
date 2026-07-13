@@ -29,7 +29,7 @@
 | 数据库 | Cloudflare D1（SQLite） |
 | API 层 | Cloudflare Pages Function |
 | AI 引擎 | 大模型 API |
-| 版本管理 | GitHub |
+| 开发方式 | AI 辅助开发（Codex / Claude Code 协作） |
 
 ## 架构
 
@@ -58,7 +58,7 @@
 
 ## 开发过程
 
-这个产品从想法到上线，全程用 **Vibe Coding** 方式完成——自然语言驱动 AI 写代码，开发者在飞书对话框里指挥。
+这个产品从想法到上线，全程用 AI 辅助开发方式完成——自然语言驱动 AI 写代码，在飞书对话框里指挥。  
 
 **时间线：**
 
@@ -115,7 +115,7 @@ python3 -m http.server 8080
 
 ## 关于作者
 
-**KanG** —— 还在路上的 AI 学习者。用 Vibe Coding 的方式，把想法变成产品。
+**KanG** —— 还在路上的 AI 学习者。用 AI 辅助的方式，把想法变成产品。
 
 ---
 
