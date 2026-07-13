@@ -1,0 +1,122 @@
+# AI 能力测评
+
+> 一份 12 道题的免费测评，帮你找到自己的 AI 能力短板和提升方向。
+
+**公网地址**：https://ai-assessment-260.pages.dev
+
+---
+
+## 这个产品做什么
+
+很多人对 AI 的了解停留在"ChatGPT 能聊天"，不知道自己 AI 能力什么水平、该从哪里学起。网上教程满天飞，但没有一套标准帮人自评。
+
+这个工具就是为了解决这个问题——免费、开放、不收集个人信息，做完 12 道选择题，AI 实时生成一份个性化分析报告。
+
+## 功能
+
+- **12 道选择题**，覆盖 5 个能力维度：AI 认知、使用频率、工具掌握、学习意愿、行业应用
+- **AI 实时分析**，提交后 DeepSeek 大模型生成个性化报告，不是套模板
+- **五维度雷达图**，直观看到自己的强项和薄弱点
+- **学习路径建议**，从"立刻做"到"长期目标"三步规划
+- **纯前端**，答完即出结果，无需注册登录
+
+## 技术栈
+
+| 环节 | 工具 |
+|------|------|
+| 前端 | 纯 HTML/CSS/JS，零框架，约 3500 行 |
+| 部署 | Cloudflare Pages（国内可直连） |
+| 数据库 | Cloudflare D1（SQLite） |
+| API 层 | Cloudflare Pages Function |
+| AI 引擎 | DeepSeek v4-flash API |
+| 版本管理 | GitHub |
+
+## 架构
+
+```
+用户答题 → 前端计算维度得分 → Pages Function 调 DeepSeek API
+       → DeepSeek 实时生成报告 → 返回前端展示
+       → 答题记录写入 D1 数据库
+```
+
+设计原则：**轻量、国内可访问、零维护成本**。不依赖第三方付费服务，全链路走免费套餐。
+
+## 项目结构
+
+```
+├── index.html                 # 前端页面（含全部样式和逻辑）
+├── functions/api/
+│   └── generate-report.js     # Cloudflare Pages Function（调 DeepSeek API + 写 D1）
+├── api/
+│   └── generate-report.js     # （历史版本）Vercel Serverless Function
+├── schema.sql                 # D1 数据库建表语句
+├── supabase/                  # （历史）Supabase 版本，已弃用
+├── assets/
+│   └── ai-archive-hero.svg    # 页面装饰图
+└── AI能力测评_项目材料/         # 项目文档（PRD、题库、Prompt 等）
+```
+
+## 开发过程
+
+这个产品从想法到上线，全程用 **Vibe Coding** 方式完成——自然语言驱动 AI 写代码，开发者在飞书对话框里指挥。
+
+**时间线：**
+
+- **7月2日晚**：写下项目思路文档，确定产品定位
+- **7月3日全天**：
+  - 上午：PRD 定稿 + 12 题题库设计 + 前端三页开发
+  - 下午：Vercel 部署上线 + Supabase 建表 + Edge Function 开发
+  - 傍晚：Supabase 国内被墙 → 果断切换 Vercel API + 接入 DeepSeek AI 分析
+  - 晚间：调试修复 → 全线跑通
+- **7月4日**：从 Vercel 迁移到 Cloudflare Pages + D1，国内手机也可直连
+- **7月中旬**：Codex 重新设计前端，深色极简风+金色点缀
+
+## 遇到的问题
+
+| 问题 | 解决方案 |
+|------|----------|
+| Supabase 域名国内被墙 | AI 分析从 Supabase Edge Function 迁移到 Vercel API |
+| CDN 被墙 | Supabase JS SDK 下载到本地（201KB），零外部依赖 |
+| Vercel 域名手机端被墙 | 迁移到 Cloudflare Pages，国内直连 |
+| DeepSeek 模型名升级 | deepseek-chat → deepseek-v4-flash |
+| 变量名冲突 | supabase 重命名为 supabaseClient |
+
+## 测评维度
+
+| 维度 | 题数 | 满分 | 说明 |
+|------|------|------|------|
+| AI 认知 | 3 | 9 | 知不知道 AI 能干什么 |
+| 使用频率 | 2 | 6 | 日常用不用、用多少 |
+| 工具掌握 | 3 | 9 | 用过哪些、用到什么深度 |
+| 学习意愿 | 2 | 6 | 愿不愿意学、怎么学 |
+| 行业应用 | 2 | 6 | 自己行业有没有 AI 落地场景 |
+
+满分 36 分，等级划分：探索者（30+）、进阶者（20-29）、入门者（10-19）、初识者（0-9）。
+
+## 本地运行
+
+这是一个纯静态 HTML，浏览器直接打开就能跑（不连数据库和 API 的情况下）：
+
+```bash
+# 用浏览器打开
+open index.html
+
+# 或者用 Python 起一个本地服务器
+python3 -m http.server 8080
+```
+
+完整功能（AI 报告生成）需要配置 Cloudflare Pages Function 和 D1 数据库，参考 `schema.sql` 建表。
+
+## 灵感来源
+
+之前在金舆咨询做售前时，公司有一个给企业做 AI 诊断的产品——帮企业识别智能化转型的薄弱点。
+
+当时就在想：企业有咨询公司帮忙诊断，那普通人呢？大多数人对 AI 的了解很模糊，不知道自己该从哪里学起。于是做了这个个人版，免费开放。
+
+## 关于作者
+
+**KanG** —— 还在路上的 AI 学习者。用 Vibe Coding 的方式，把想法变成产品。
+
+---
+
+*公益项目 · 免费开放 · 不引流不收费*
