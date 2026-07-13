@@ -9,7 +9,7 @@
 **产品名称**：AI 能力测评  
 **作者**：KanG  
 **定位**：纯公益、免费、不引流  
-**公网地址**：ai-assessment-psi-bice.vercel.app  
+**公网地址**：ai-assessment-260.pages.dev  
 **GitHub**：github.com/KanG-ciyuan/ai-assessment  
 
 ---
@@ -26,8 +26,8 @@
 - **技术栈**：纯 HTML/CSS/JS（约 2196 行），无框架
 
 ### AI 分析（已接入）
-- **模型**：DeepSeek v4-flash（API 调用）【注：不对外公开模型名称，只说「顶尖大模型」】
-- **架构**：前端 → Vercel API（/api/generate-report）→ DeepSeek → 返回报告
+- **模型**：大模型 API 调用
+- **架构**：前端 → Vercel API（/api/generate-report）→ 大模型 → 返回报告
 - **报告内容**：AI 能力画像 → 强项分析 → 薄弱点分析 → 中等维度建议 → 三步学习路径
 - **不是套模板**：每份报告由大模型实时生成，根据答题数据个性化分析
 - **兜底机制**：AI 不可用时自动降级为本地模板报告

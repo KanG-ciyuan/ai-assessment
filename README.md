@@ -15,7 +15,7 @@
 ## 功能
 
 - **12 道选择题**，覆盖 5 个能力维度：AI 认知、使用频率、工具掌握、学习意愿、行业应用
-- **AI 实时分析**，提交后 DeepSeek 大模型生成个性化报告，不是套模板
+- **AI 实时分析**，提交后大模型生成个性化报告，不是套模板
 - **五维度雷达图**，直观看到自己的强项和薄弱点
 - **学习路径建议**，从"立刻做"到"长期目标"三步规划
 - **纯前端**，答完即出结果，无需注册登录
@@ -28,14 +28,14 @@
 | 部署 | Cloudflare Pages（国内可直连） |
 | 数据库 | Cloudflare D1（SQLite） |
 | API 层 | Cloudflare Pages Function |
-| AI 引擎 | DeepSeek v4-flash API |
+| AI 引擎 | 大模型 API |
 | 版本管理 | GitHub |
 
 ## 架构
 
 ```
-用户答题 → 前端计算维度得分 → Pages Function 调 DeepSeek API
-       → DeepSeek 实时生成报告 → 返回前端展示
+用户答题 → 前端计算维度得分 → Pages Function 调 AI API
+       → AI 实时生成报告 → 返回前端展示
        → 答题记录写入 D1 数据库
 ```
 
@@ -66,7 +66,7 @@
 - **7月3日全天**：
   - 上午：PRD 定稿 + 12 题题库设计 + 前端三页开发
   - 下午：Vercel 部署上线 + Supabase 建表 + Edge Function 开发
-  - 傍晚：Supabase 国内被墙 → 果断切换 Vercel API + 接入 DeepSeek AI 分析
+  - 傍晚：Supabase 国内被墙 → 果断切换 Vercel API + 接入 AI 分析
   - 晚间：调试修复 → 全线跑通
 - **7月4日**：从 Vercel 迁移到 Cloudflare Pages + D1，国内手机也可直连
 - **7月中旬**：Codex 重新设计前端，深色极简风+金色点缀
@@ -78,7 +78,7 @@
 | Supabase 域名国内被墙 | AI 分析从 Supabase Edge Function 迁移到 Vercel API |
 | CDN 被墙 | Supabase JS SDK 下载到本地（201KB），零外部依赖 |
 | Vercel 域名手机端被墙 | 迁移到 Cloudflare Pages，国内直连 |
-| DeepSeek 模型名升级 | deepseek-chat → deepseek-v4-flash |
+| 模型名升级 | 适配最新模型版本 |
 | 变量名冲突 | supabase 重命名为 supabaseClient |
 
 ## 测评维度
@@ -109,7 +109,7 @@ python3 -m http.server 8080
 
 ## 灵感来源
 
-之前在金舆咨询做售前时，公司有一个给企业做 AI 诊断的产品——帮企业识别智能化转型的薄弱点。
+之前做售前时接触过企业 AI 诊断的产品——帮企业识别智能化转型的薄弱点。
 
 当时就在想：企业有咨询公司帮忙诊断，那普通人呢？大多数人对 AI 的了解很模糊，不知道自己该从哪里学起。于是做了这个个人版，免费开放。
 
