@@ -191,6 +191,18 @@ body {
   transform: scale(0.97);
 }
 
+.btn-last-result {
+  display: none;
+  margin-left: 12px;
+  padding: 16px 24px;
+  background: transparent;
+  color: rgba(255,255,255,0.72);
+  border: 1px solid rgba(255,255,255,0.28);
+  border-radius: 50px;
+  font: 600 14px 'Inter', -apple-system, sans-serif;
+  cursor: pointer;
+}
+
 @keyframes btn-pulse {
   0%, 100% { box-shadow: 0 0 30px rgba(110,70,180,0.25), 0 0 60px rgba(110,70,180,0.08); }
   50%      { box-shadow: 0 0 42px rgba(130,90,210,0.40), 0 0 85px rgba(110,70,180,0.15); }
@@ -2197,6 +2209,9 @@ button {
 .badge-strong { background: rgba(74,118,80,.13); color: #3b7042; }
 .badge-medium { background: rgba(21,23,19,.08); color: #585a53; }
 .badge-weak { background: rgba(164,81,51,.12); color: var(--museum-danger); }
+.badge-strength { background: rgba(74,118,80,.13); color: #3b7042; }
+.badge-developing { background: rgba(21,23,19,.08); color: #585a53; }
+.badge-priority { background: rgba(164,81,51,.12); color: var(--museum-danger); }
 
 .dim-card-score-line {
   color: var(--museum-muted);
@@ -2264,6 +2279,9 @@ button {
 .score-table-level.strong { color: #3b7042; }
 .score-table-level.medium { color: #585a53; }
 .score-table-level.weak { color: var(--museum-danger); }
+.score-table-level.strength { color: #3b7042; }
+.score-table-level.developing { color: #585a53; }
+.score-table-level.priority { color: var(--museum-danger); }
 
 .report-footer {
   border-top-color: rgba(21,23,19,.12);
@@ -2685,9 +2703,10 @@ button {
       <div class="hero-brand">AI CAPABILITY ASSESSMENT</div>
       <h1 class="hero-title">AI 能力测评</h1>
       <p class="hero-title-sub">你的 AI 能力在哪个段位？</p>
-      <p class="hero-desc">12 道题 · 5 个维度 · 看清你的 AI 强项与短板</p>
-      <p class="hero-desc-extras">测评后你将获得：五维度雷达图分析、个性化学习路径建议、针对性工具推荐</p>
+      <p class="hero-desc">12 个真实场景 · 4 个维度 · 看清你如何把 AI 用进真实问题</p>
+      <p class="hero-desc-extras">测评后你将获得：能力阶段、四维画像和七天行动路径</p>
       <button class="btn-start" onclick="goToQuiz()">开始测评</button>
+      <button class="btn-last-result" id="btnLastResult" onclick="showLastResult()">查看上次结果</button>
       <div class="hero-footnote">测评报告由 AI 大模型驱动 · 为你生成个性化分析</div>
 
       <!-- KanG Logo -->
@@ -2751,7 +2770,7 @@ button {
                 <circle cx="85" cy="85" r="3.5" fill="#ede4f7"/>
               </svg>
             </div>
-            <div class="demo-radar-label">五维度雷达图分析</div>
+            <div class="demo-radar-label">四维能力画像</div>
           </div>
 
           <!-- 帧 3：报告卡片 -->
@@ -2797,7 +2816,7 @@ button {
   <div class="museum-hero-index" aria-hidden="true">
     <span>Established</span>
     <strong>MMXXVI</strong>
-    <span>12 Questions / 5 Dimensions</span>
+    <span>12 Questions / 4 Dimensions</span>
   </div>
 </div>
 
@@ -2859,15 +2878,23 @@ button {
   </div>
 </div>
 
-<script>
-const API_URL = '/api/generate-report';
+<script type="module">
+import {
+  DIMENSION_ORDER,
+  DIMENSIONS,
+  QUESTIONS,
+  STORAGE_KEY,
+  calculateAssessment,
+  createStoredResult,
+} from './assessment-core.js';
+
 // AI API 暂停期间保留基础测评体验，不发出模型请求。
 const AI_ANALYSIS_ENABLED = false;
 
 // ========================================
 // 题目数据
 // ========================================
-const questions = [
+const legacyQuestions = [
   { id:1,  dimension:'AI 认知', dimKey:'ai认知', text:'你对 AI 能做什么了解多少？',
     options:['几乎不了解，只知道 ChatGPT 能聊天','知道 AI 能写文章、画图、翻译','知道 AI 能做数据分析、代码生成、自动化流程','清楚不同 AI 工具的适用场景和局限性'] },
   { id:2,  dimension:'AI 认知', dimKey:'ai认知', text:'你平时关注 AI 发展趋势吗？',
@@ -2894,14 +2921,17 @@ const questions = [
     options:['不了解','知道 AI 能帮企业降本增效但说不清具体怎么帮','能举出自己行业里的具体 AI 应用案例','能分析企业的 AI 切入点、投入产出比，有自己的方法论'] }
 ];
 
-const dimConfig = {
+const legacyDimConfig = {
   'ai认知':   { name:'AI 认知', max:9,  qs:[1,2,3] },
   '使用频率': { name:'使用频率', max:6,  qs:[4,5] },
   '工具掌握': { name:'工具掌握', max:9,  qs:[6,7,8] },
   '学习意愿': { name:'学习意愿', max:6,  qs:[9,10] },
   '行业应用': { name:'行业应用', max:6,  qs:[11,12] }
 };
-const dimOrder = ['ai认知','使用频率','工具掌握','学习意愿','行业应用'];
+const legacyDimOrder = ['ai认知','使用频率','工具掌握','学习意愿','行业应用'];
+const questions = QUESTIONS;
+const dimConfig = DIMENSIONS;
+const dimOrder = DIMENSION_ORDER;
 
 // ========================================
 // 答题状态
@@ -2924,6 +2954,25 @@ function goToQuiz() {
   buildQuiz();
 }
 
+function readLastResult() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (!stored || stored.version !== 2 || Object.keys(stored.answers || {}).length !== questions.length) return null;
+    return stored;
+  } catch {
+    return null;
+  }
+}
+
+function refreshLastResultButton() {
+  document.getElementById('btnLastResult').style.display = readLastResult() ? 'inline-block' : 'none';
+}
+
+function showLastResult() {
+  const stored = readLastResult();
+  if (stored) showV2Report(calculateAssessment(stored.answers));
+}
+
 function goBack() {
   switchPage('startPage');
 }
@@ -2940,12 +2989,12 @@ function renderQuestion() {
   card.classList.add('fade-out');
 
   setTimeout(() => {
-    document.getElementById('quizDimBadge').textContent = q.dimension;
-    document.getElementById('quizCountTop').textContent = (currentQ + 1) + ' / 12';
-    document.getElementById('quizProgressFill').style.width = Math.round((currentQ / 12) * 100) + '%';
+    document.getElementById('quizDimBadge').textContent = DIMENSIONS[q.dimension].name;
+    document.getElementById('quizCountTop').textContent = (currentQ + 1) + ' / ' + questions.length;
+    document.getElementById('quizProgressFill').style.width = Math.round((currentQ / questions.length) * 100) + '%';
 
     const n = Object.keys(answers).length;
-    document.getElementById('quizProgressText').textContent = '已答 ' + n + ' / 12 题';
+    document.getElementById('quizProgressText').textContent = '已答 ' + n + ' / ' + questions.length + ' 题';
 
     document.getElementById('quizCardNumber').textContent = 'QUESTION ' + String(q.id).padStart(2, '0');
     document.getElementById('quizCardQuestion').textContent = q.text;
@@ -2989,8 +3038,8 @@ function selectOption(index) {
   });
 
   const n = Object.keys(answers).length;
-  document.getElementById('quizProgressText').textContent = '已答 ' + n + ' / 12 题';
-  document.getElementById('quizProgressFill').style.width = Math.round((currentQ / 12) * 100) + '%';
+  document.getElementById('quizProgressText').textContent = '已答 ' + n + ' / ' + questions.length + ' 题';
+  document.getElementById('quizProgressFill').style.width = Math.round((currentQ / questions.length) * 100) + '%';
 
   if (currentQ === questions.length - 1) {
     document.getElementById('btnSubmitCard').classList.add('visible');
@@ -3005,57 +3054,17 @@ function prevQuestion() {
   if (currentQ > 0) { currentQ--; renderQuestion(); }
 }
 
-async function submitQuiz() {
-  // 检查是否有未答题目
-  const unanswered = questions.filter(q => answers[q.id] === undefined);
+function submitQuiz() {
+  const unanswered = questions.filter((question) => answers[question.id] === undefined);
   if (unanswered.length > 0) {
     currentQ = questions.indexOf(unanswered[0]);
     renderQuestion();
     return;
   }
 
-  // 先算分
-  const { dimScores, total } = calcScores();
-  const level = getLevel(total);
-
-  let aiReport = null;
-
-  if (AI_ANALYSIS_ENABLED) {
-    const btn = document.getElementById('btnSubmitCard');
-    const originalText = btn.textContent;
-    btn.textContent = '正在生成 AI 分析…';
-    btn.classList.add('loading');
-    btn.disabled = true;
-
-    try {
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          answers: answers,
-          dim_scores: dimScores,
-          total_score: total,
-          level: level.name,
-        }),
-      });
-      const data = await res.json();
-      if (data.success && data.report) {
-        aiReport = data.report;
-        console.log('AI 报告生成成功');
-      } else {
-        console.warn('API 返回失败:', data.error || '未知错误');
-      }
-    } catch (err) {
-      console.warn('API 调用异常，降级到本地报告:', err.message);
-    } finally {
-      btn.textContent = originalText;
-      btn.classList.remove('loading');
-      btn.disabled = false;
-    }
-  }
-
-  // 渲染报告（AI 增强 or 本地兜底）
-  showReport(dimScores, total, level, aiReport);
+  const result = calculateAssessment(answers);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(createStoredResult(result, answers)));
+  showV2Report(result);
 }
 
 // ========================================
@@ -3236,6 +3245,47 @@ function simpleMarkdownToHTML(md) {
 // ========================================
 // 报告渲染（支持 AI 增强 + 本地兜底）
 // ========================================
+function showV2Report(result) {
+  const { dimensions, total, stage, strengths, priorityDimension, route } = result;
+  const fallbackNote = document.getElementById('reportFallbackNote');
+  const aiWrap = document.getElementById('aiReportWrap');
+  const strengthNames = strengths.map((dimension) => dimension.name).join('、');
+
+  switchPage('reportPage');
+  aiWrap.style.display = 'none';
+  fallbackNote.style.display = 'block';
+  fallbackNote.textContent = '本次结果按固定规则生成，不调用模型 API。';
+  document.getElementById('reportHero').innerHTML =
+    '<div class="report-summary-line">你目前处于' + stage.name + '阶段</div>' +
+    '<span class="report-score-big">' + total + '</span><span class="report-score-outof">/ 36</span>' +
+    '<div><span class="report-level-tag">' + stage.name + '</span></div>' +
+    '<div class="report-level-desc">' + stage.desc + (stage.capped ? ' 存在关键短板，阶段按能力短板校正。' : '') + '</div>';
+
+  drawRadar(dimensions);
+  document.getElementById('reportDimCards').innerHTML = dimOrder.map((key) => {
+    const dimension = dimensions[key];
+    return '<div class="report-dim-card anim-fade-up">' +
+      '<div class="dim-card-row1"><div class="dim-card-name">' + dimension.name + '</div><div class="dim-card-badge badge-' + dimension.status.key + '">' + dimension.status.name + '</div></div>' +
+      '<div class="dim-card-score-line">得分 ' + dimension.score + ' / ' + dimension.max + '</div>' +
+      '<div class="dim-card-analysis">' + dimension.explanation + '</div></div>';
+  }).join('');
+
+  const timeline = document.getElementById('reportTimeline');
+  timeline.innerHTML = '<div class="timeline-title">你的优势：' + strengthNames + '</div>' +
+    '<div class="timeline-desc">当前优先提升：' + priorityDimension.name + '。先完成下面三项行动，再回来复测。</div>' +
+    route.steps.map((step, index) => '<div class="timeline-step anim-fade-up" style="animation-delay:' + (index * 0.15) + 's">' +
+      '<div class="timeline-dot"></div><div class="timeline-label">' + step.label + '</div>' +
+      '<div class="timeline-title">' + step.title + '</div><div class="timeline-desc">' + step.desc + '</div></div>').join('');
+
+  let table = '<div class="score-table-title">得分一览</div>';
+  dimOrder.forEach((key) => {
+    const dimension = dimensions[key];
+    table += '<div class="score-table-row"><span class="score-table-label">' + dimension.name + '</span><span class="score-table-score">' + dimension.score + ' / ' + dimension.max + '</span><span class="score-table-level ' + dimension.status.key + '">' + dimension.status.name + '</span></div>';
+  });
+  table += '<div class="score-table-row"><span class="score-table-label">总分</span><span class="score-table-score">' + total + ' / 36</span><span class="score-table-level strength">' + stage.name + '</span></div>';
+  document.getElementById('reportScoreTable').innerHTML = table;
+}
+
 function showReport(dimScores, total, level, aiReport) {
   // 兼容旧调用：无参数时自己算
   if (!dimScores) {
@@ -3308,7 +3358,7 @@ function showReport(dimScores, total, level, aiReport) {
 function drawRadar(dimScores) {
   const svg = document.getElementById('radarSvg');
   const cx=140, cy=140, r=110;
-  const angles = [-90, -18, 54, 126, 198].map(d => d * Math.PI / 180);
+  const angles = dimOrder.map((_, index) => (-90 + (360 / dimOrder.length) * index) * Math.PI / 180);
   let html = '';
   [0.25, 0.5, 0.75, 1].forEach(lvl => {
     const pts = angles.map(a => (cx+r*lvl*Math.cos(a))+','+(cy+r*lvl*Math.sin(a))).join(' ');
@@ -3366,6 +3416,8 @@ function restartQuiz() {
   switchPage('quizPage');
   buildQuiz();
 }
+
+refreshLastResultButton();
 
 // 键盘快捷键
 document.addEventListener('keydown', e => {
