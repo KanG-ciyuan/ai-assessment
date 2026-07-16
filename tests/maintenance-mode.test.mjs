@@ -7,6 +7,8 @@ assert.match(source, /const AI_ANALYSIS_ENABLED = false;/);
 assert.match(source, /<script type="module">/);
 assert.match(source, /from '\.\/assessment-core\.js'/);
 assert.match(source, /本次结果按固定规则生成，不调用模型 API/);
+assert.match(source, /window\.goToQuiz = goToQuiz;/);
+assert.match(source, /window\.showLastResult = showLastResult;/);
 assert.doesNotMatch(source, /supabase\.min\.js/);
 assert.doesNotMatch(source, /SUPABASE_URL/);
 assert.doesNotMatch(source, /调用 Vercel API/);

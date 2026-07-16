@@ -3417,6 +3417,14 @@ function restartQuiz() {
   buildQuiz();
 }
 
+// 模块脚本不会自动暴露给 HTML 的 onclick 属性。
+window.goToQuiz = goToQuiz;
+window.goBack = goBack;
+window.prevQuestion = prevQuestion;
+window.submitQuiz = submitQuiz;
+window.restartQuiz = restartQuiz;
+window.showLastResult = showLastResult;
+
 refreshLastResultButton();
 
 // 键盘快捷键
