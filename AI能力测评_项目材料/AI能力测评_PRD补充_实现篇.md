@@ -1,6 +1,8 @@
-# AI 能力测评 — PRD 补充 · 实现篇
+# AI 能力测评 — 历史实现记录（Vercel / Supabase 阶段）
 
-> 以下是产品从 MVP 到上线的实际实现情况，补充到原有 PRD 文档对应章节。
+> 本文记录产品早期从 Supabase、Vercel 到 Cloudflare 的迁移过程，保留用于复盘，不代表当前线上架构。
+>
+> 当前版本以仓库根目录 `README.md` 为准：网站部署在 Cloudflare Pages，报告接口为 `functions/api/generate-report.js`，数据结构为 `schema.sql` 中的 D1 表。AI 深度分析当前维护中，未启用模型 API。
 
 ---
 

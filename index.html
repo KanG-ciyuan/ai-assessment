@@ -7,8 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<!-- Supabase JS SDK（CDN） -->
-<script src="supabase.min.js"></script>
 <style>
 /* ========================================
    CSS 变量
@@ -2840,13 +2838,12 @@ button {
   <div class="report-inner">
     <div class="report-hero" id="reportHero"></div>
 
-    <!-- AI 深度分析报告（Edge Function 成功时显示） -->
+    <!-- AI 深度分析报告（功能启用时显示） -->
     <div class="ai-report-wrap" id="aiReportWrap" style="display:none;">
       <div class="ai-report-label">🤖 AI 深度分析</div>
       <div class="ai-report-content" id="aiReportContent"></div>
     </div>
-    <!-- Edge Function 失败时的提示 -->
-    <div class="report-fallback-note" id="reportFallbackNote" style="display:none;">AI 分析暂时不可用，显示的是基础报告</div>
+    <div class="report-fallback-note" id="reportFallbackNote" style="display:none;">当前为体验版：AI 深度分析维护中，以下为基础报告。</div>
 
     <div class="report-radar-wrap">
       <svg viewBox="0 0 280 280" id="radarSvg"></svg>
@@ -2857,33 +2854,15 @@ button {
     <div class="report-score-table" id="reportScoreTable"></div>
     <div class="report-footer">
       <button class="btn-restart" onclick="restartQuiz()">重新测评</button>
-      <div class="footer-note">AI 能力测评 · 公益项目</div>
+      <div class="footer-note">AI 能力测评 · 体验版</div>
     </div>
   </div>
 </div>
 
 <script>
-// ========================================
-// Supabase 配置
-// ========================================
-const SUPABASE_URL = 'https://vzprjyngeihvsjzrfqgw.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ6cHJqeW5naWVodnNqenJmcWd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5ODAzMTYsImV4cCI6MjA5ODU1NjMxNn0.BWfTWJ-iU9MfJhdvq3kqOlbNIuD92w-vcIvCboJ3HKM';
 const API_URL = '/api/generate-report';
-
-// 初始化 Supabase 客户端（全局可用）
-let supabaseClient = null;
-(function initSupabase() {
-  try {
-    if (typeof window.supabase !== 'undefined') {
-      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      console.log('Supabase 客户端初始化成功');
-    } else {
-      console.warn('Supabase SDK 未加载，将使用本地报告模式');
-    }
-  } catch (e) {
-    console.warn('Supabase 初始化失败:', e.message);
-  }
-})();
+// AI API 暂停期间保留基础测评体验，不发出模型请求。
+const AI_ANALYSIS_ENABLED = false;
 
 // ========================================
 // 题目数据
@@ -3039,42 +3018,41 @@ async function submitQuiz() {
   const { dimScores, total } = calcScores();
   const level = getLevel(total);
 
-  // 按钮显示加载状态
-  const btn = document.getElementById('btnSubmitCard');
-  const originalText = btn.textContent;
-  btn.textContent = '正在提交…';
-  btn.classList.add('loading');
-  btn.disabled = true;
-
   let aiReport = null;
 
-  // 调用 Vercel API 生成 AI 报告
-  try {
-    const res = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        answers: answers,
-        dim_scores: dimScores,
-        total_score: total,
-        level: level.name,
-      }),
-    });
-    const data = await res.json();
-    if (data.success && data.report) {
-      aiReport = data.report;
-      console.log('AI 报告生成成功');
-    } else {
-      console.warn('API 返回失败:', data.error || '未知错误');
-    }
-  } catch (err) {
-    console.warn('API 调用异常，降级到本地报告:', err.message);
-  }
+  if (AI_ANALYSIS_ENABLED) {
+    const btn = document.getElementById('btnSubmitCard');
+    const originalText = btn.textContent;
+    btn.textContent = '正在生成 AI 分析…';
+    btn.classList.add('loading');
+    btn.disabled = true;
 
-  // 恢复按钮
-  btn.textContent = originalText;
-  btn.classList.remove('loading');
-  btn.disabled = false;
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          answers: answers,
+          dim_scores: dimScores,
+          total_score: total,
+          level: level.name,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.report) {
+        aiReport = data.report;
+        console.log('AI 报告生成成功');
+      } else {
+        console.warn('API 返回失败:', data.error || '未知错误');
+      }
+    } catch (err) {
+      console.warn('API 调用异常，降级到本地报告:', err.message);
+    } finally {
+      btn.textContent = originalText;
+      btn.classList.remove('loading');
+      btn.disabled = false;
+    }
+  }
 
   // 渲染报告（AI 增强 or 本地兜底）
   showReport(dimScores, total, level, aiReport);
