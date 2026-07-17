@@ -80,6 +80,7 @@ export async function onRequest(context) {
   const result = calculateAssessment(body.answers);
   const prompt = buildPersonalizedAdvicePrompt(buildAdviceInput(result));
   let advice;
+  const model = env.DEEPSEEK_MODEL || 'deepseek-chat';
 
   try {
     const modelResponse = await fetch('https://api.deepseek.com/v1/chat/completions', {
@@ -89,7 +90,7 @@ export async function onRequest(context) {
         Authorization: `Bearer ${env.DEEPSEEK_API_KEY}`,
       },
       body: JSON.stringify({
-        model: env.DEEPSEEK_MODEL || 'deepseek-chat',
+        model,
         messages: [
           { role: 'system', content: '你是一个简洁、务实的 AI 学习教练。严格遵守用户消息中的 JSON 输出契约。' },
           { role: 'user', content: prompt },
@@ -98,10 +99,32 @@ export async function onRequest(context) {
         max_tokens: 350,
       }),
     });
-    if (!modelResponse.ok) throw new Error('model request failed');
+    if (!modelResponse.ok) {
+      console.error('personalized-advice model request failed', { model, status: modelResponse.status });
+      throw new Error('model request failed');
+    }
     const modelData = await modelResponse.json();
-    advice = parsePersonalizedAdvice(modelData.choices?.[0]?.message?.content || '');
-  } catch {
+    const content = modelData.choices?.[0]?.message?.content || '';
+    try {
+      advice = parsePersonalizedAdvice(content);
+    } catch (error) {
+      console.error('personalized-advice model response rejected', {
+        model,
+        hasChoices: Array.isArray(modelData.choices),
+        contentLength: typeof content === 'string' ? [...content].length : 0,
+        startsWithJson: typeof content === 'string' && content.trim().startsWith('{'),
+        startsWithCodeFence: typeof content === 'string' && content.trim().startsWith('```'),
+        error: error instanceof Error ? error.message : 'unknown',
+      });
+      throw error;
+    }
+  } catch (error) {
+    if (!(error instanceof Error && error.message === 'invalid personalized advice response')) {
+      console.error('personalized-advice model call failed', {
+        model,
+        error: error instanceof Error ? error.message : 'unknown',
+      });
+    }
     return jsonResponse({ success: false, code: 'MODEL_RESPONSE_INVALID', error: '暂时无法生成，请稍后重试' }, 502);
   }
 
