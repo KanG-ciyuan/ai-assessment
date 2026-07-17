@@ -4,6 +4,7 @@ import {
   DIMENSION_ORDER,
   QUESTIONS,
   calculateAssessment,
+  createAssessmentId,
   createStoredResult,
 } from '../assessment-core.js';
 
@@ -57,4 +58,17 @@ test('priority order and local result are deterministic', () => {
   ]);
   assert.equal(stored.version, 2);
   assert.equal(stored.apiReport, undefined);
+});
+
+test('stored V2 results carry the supplied assessment identifier', () => {
+  const answers = answerAll(1);
+  const result = calculateAssessment(answers);
+  const stored = createStoredResult(result, answers, '2026-07-17T00:00:00.000Z', 'assessment-test-1234');
+
+  assert.equal(stored.assessmentId, 'assessment-test-1234');
+  assert.equal(stored.personalizedAdvice, undefined);
+});
+
+test('assessment identifiers are non-empty strings', () => {
+  assert.match(createAssessmentId(), /^assessment-[a-z0-9-]+$/i);
 });

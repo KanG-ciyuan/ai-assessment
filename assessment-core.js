@@ -175,9 +175,21 @@ export function calculateAssessment(answers = {}) {
   };
 }
 
-export function createStoredResult(result, answers, savedAt = new Date().toISOString()) {
+export function createAssessmentId() {
+  const uuid = globalThis.crypto?.randomUUID?.();
+  if (uuid) return `assessment-${uuid}`;
+  return `assessment-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+export function createStoredResult(
+  result,
+  answers,
+  savedAt = new Date().toISOString(),
+  assessmentId = createAssessmentId(),
+) {
   return {
     version: 2,
+    assessmentId,
     savedAt,
     answers: { ...answers },
     total: result.total,
