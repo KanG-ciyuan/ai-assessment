@@ -1928,11 +1928,11 @@ button {
 .quiz-card-question {
   max-width: 640px;
   font-family: 'Cormorant Garamond', 'Songti SC', serif;
-  font-size: clamp(28px, 4vw, 46px);
+  font-size: clamp(26px, 3.2vw, 38px);
   font-weight: 500;
-  line-height: 1.18;
+  line-height: 1.22;
   letter-spacing: 0;
-  margin-bottom: 38px;
+  margin-bottom: 30px;
 }
 
 .quiz-options {
@@ -2027,10 +2027,10 @@ button {
 .report-hero {
   position: relative;
   display: block;
-  min-height: clamp(300px, 42vh, 430px);
+  min-height: clamp(250px, 34vh, 330px);
   text-align: left;
-  padding: clamp(28px, 4.5vw, 52px);
-  margin-bottom: 34px;
+  padding: clamp(24px, 3.2vw, 38px);
+  margin-bottom: 26px;
   border-radius: 8px;
   background:
     radial-gradient(circle at 82% 24%, rgba(91, 135, 148, .34), transparent 34%),
@@ -2062,20 +2062,20 @@ button {
 .report-summary-line {
   max-width: min(620px, 66%);
   font-family: 'Cormorant Garamond', 'Songti SC', serif;
-  font-size: clamp(28px, 3.8vw, 52px);
+  font-size: clamp(26px, 3.2vw, 42px);
   font-weight: 500;
   line-height: 1.12;
   letter-spacing: 0;
   color: #fffdf4;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .report-score-big {
   position: absolute;
-  right: clamp(28px, 5vw, 58px);
-  bottom: clamp(30px, 5vw, 54px);
+  right: clamp(24px, 3.8vw, 44px);
+  bottom: clamp(24px, 3.8vw, 38px);
   font-family: 'Cormorant Garamond', Georgia, serif;
-  font-size: clamp(76px, 10vw, 132px);
+  font-size: clamp(68px, 8vw, 108px);
   font-weight: 500;
   line-height: .78;
   letter-spacing: 0;
@@ -2085,8 +2085,8 @@ button {
 
 .report-score-outof {
   position: absolute;
-  right: clamp(118px, 15vw, 178px);
-  bottom: clamp(44px, 6vw, 70px);
+  right: clamp(100px, 12vw, 148px);
+  bottom: clamp(34px, 4.8vw, 52px);
   margin-left: 0;
   color: rgba(244,241,233,.54);
   font-size: 22px;
@@ -2104,7 +2104,7 @@ button {
 }
 
 .report-hero > div:nth-of-type(2) {
-  margin-top: 68px;
+  margin-top: 26px;
 }
 
 .report-level-desc {
@@ -2165,8 +2165,8 @@ button {
 }
 
 .report-radar-wrap svg {
-  width: min(360px, 82vw);
-  height: min(360px, 82vw);
+  width: min(480px, 90vw);
+  height: auto;
   filter: drop-shadow(0 20px 34px rgba(21,23,19,.12));
 }
 
@@ -2865,7 +2865,7 @@ button {
     <div class="report-fallback-note" id="reportFallbackNote" style="display:none;">当前为体验版：AI 深度分析维护中，以下为基础报告。</div>
 
     <div class="report-radar-wrap">
-      <svg viewBox="0 0 280 280" id="radarSvg"></svg>
+      <svg viewBox="0 0 480 360" id="radarSvg"></svg>
     </div>
     <div class="report-dim-cards" id="reportDimCards"></div>
     <div class="report-timeline-title">你的 AI 学习路径</div>
@@ -3355,9 +3355,16 @@ function showReport(dimScores, total, level, aiReport) {
   document.getElementById('reportScoreTable').innerHTML = tbl;
 }
 
+const RADAR_LABEL_POSITIONS = {
+  understanding: { x: 240, y: 34, anchor: 'middle' },
+  expression: { x: 365, y: 184, anchor: 'start' },
+  application: { x: 240, y: 344, anchor: 'middle' },
+  workflow: { x: 115, y: 184, anchor: 'end' },
+};
+
 function drawRadar(dimScores) {
   const svg = document.getElementById('radarSvg');
-  const cx=140, cy=140, r=110;
+  const cx=240, cy=180, r=100;
   const angles = dimOrder.map((_, index) => (-90 + (360 / dimOrder.length) * index) * Math.PI / 180);
   let html = '';
   [0.25, 0.5, 0.75, 1].forEach(lvl => {
@@ -3376,23 +3383,9 @@ function drawRadar(dimScores) {
     const rate = dimScores[key].rate / 100;
     html += '<circle cx="'+(cx+r*rate*Math.cos(angles[i]))+'" cy="'+(cy+r*rate*Math.sin(angles[i]))+'" r="3.5" fill="#1a1a1a"/>';
   });
-  dimOrder.forEach((key, i) => {
-    const a = angles[i];
-    const label = dimConfig[key].name;
-    const labelWidth = [...label].reduce((w, ch) => w + (/[\u3400-\u9fff]/.test(ch) ? 10.5 : 6.3), 0);
-    const rawLx = cx+(r+20)*Math.cos(a), ly = cy+(r+20)*Math.sin(a);
-    let lx = rawLx;
-    let anchor = 'middle';
-    if (rawLx < cx-12) {
-      anchor = 'end';
-      lx = Math.max(2 + labelWidth, rawLx);
-    } else if (rawLx > cx+12) {
-      anchor = 'start';
-      lx = Math.min(278 - labelWidth, rawLx);
-    } else {
-      lx = Math.max(2 + labelWidth / 2, Math.min(278 - labelWidth / 2, rawLx));
-    }
-    html += '<text x="'+lx+'" y="'+ly+'" text-anchor="'+anchor+'" dominant-baseline="middle" font-size="10.5" font-weight="600" fill="#5c5c5c" font-family="Inter,system-ui,sans-serif">'+label+'</text>';
+  dimOrder.forEach(key => {
+    const labelPosition = RADAR_LABEL_POSITIONS[key];
+    html += '<text x="'+labelPosition.x+'" y="'+labelPosition.y+'" text-anchor="'+labelPosition.anchor+'" dominant-baseline="middle" font-size="13" font-weight="600" fill="#5c5c5c" font-family="Inter,system-ui,sans-serif">'+dimConfig[key].name+'</text>';
   });
   svg.innerHTML = html;
 }
