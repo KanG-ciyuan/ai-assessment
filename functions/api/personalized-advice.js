@@ -127,8 +127,10 @@ export async function onRequest(context) {
           { role: 'system', content: '你是一个简洁、务实的 AI 学习教练。严格遵守用户消息中的 JSON 输出契约。' },
           { role: 'user', content: prompt },
         ],
+        thinking: { type: 'disabled' },
+        response_format: { type: 'json_object' },
         temperature: 0.3,
-        max_tokens: 350,
+        max_tokens: 500,
       }),
     });
     if (!modelResponse.ok) {

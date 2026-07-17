@@ -29,7 +29,11 @@ test('rejects an invalid assessment request before model access', async () => {
 
 test('returns safe diagnostics when the model request is rejected', async () => {
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () => new Response('', { status: 404 });
+  let requestPayload;
+  globalThis.fetch = async (_url, options) => {
+    requestPayload = JSON.parse(options.body);
+    return new Response('', { status: 404 });
+  };
   const db = {
     prepare(sql) {
       return {
@@ -61,6 +65,9 @@ test('returns safe diagnostics when the model request is rejected', async () => 
       error: '暂时无法生成，请稍后重试',
       diagnostic: { stage: 'request', model: 'deepseek-v4-flash', status: 404 },
     });
+    assert.deepEqual(requestPayload.thinking, { type: 'disabled' });
+    assert.deepEqual(requestPayload.response_format, { type: 'json_object' });
+    assert.equal(requestPayload.max_tokens, 500);
   } finally {
     globalThis.fetch = originalFetch;
   }
