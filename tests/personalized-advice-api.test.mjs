@@ -79,7 +79,7 @@ test('returns field lengths without model text when a JSON reply fails validatio
     choices: [{ message: { content: JSON.stringify({
       current_status: '甲'.repeat(10),
       next_action: '乙'.repeat(40),
-      caution: '丙'.repeat(25),
+      caution: '丙'.repeat(20),
     }) } }],
   }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   const db = {
@@ -112,7 +112,7 @@ test('returns field lengths without model text when a JSON reply fails validatio
     assert.deepEqual(body.diagnostic.fieldLengths, {
       current_status: 10,
       next_action: 40,
-      caution: 25,
+      caution: 20,
     });
     assert.equal('content' in body.diagnostic, false);
   } finally {

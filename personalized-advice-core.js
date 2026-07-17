@@ -6,7 +6,7 @@ const EMOJI_PATTERN = /[\u{1F300}-\u{1FAFF}]/u;
 const FIELD_LIMITS = {
   current_status: [25, 70],
   next_action: [40, 90],
-  caution: [25, 70],
+  caution: [20, 70],
 };
 
 export function isCompleteAnswerSet(answers) {
@@ -48,7 +48,7 @@ ${dimensions}
 
 只返回一个合法 JSON 对象，不要 Markdown、列表、表格、Emoji、代码块、额外字段、标题、寒暄或解释。
 键必须且只能是 current_status、next_action、caution。
-current_status 为 25-70 个字符，next_action 为 40-90 个字符，caution 为 25-70 个字符。
+current_status 为 25-70 个字符，next_action 为 40-90 个字符，caution 为 20-70 个字符。
 next_action 必须把第 1 天行动具体化，包含一个真实场景、完成动作和检查标准。`;
 }
 
