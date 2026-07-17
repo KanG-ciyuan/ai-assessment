@@ -4,7 +4,7 @@ import { onRequest } from '../functions/api/personalized-advice.js';
 
 const requestFor = (body) => new Request('https://example.test/api/personalized-advice', {
   method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+  headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': '203.0.113.10' },
   body: JSON.stringify(body),
 });
 
@@ -25,4 +25,43 @@ test('rejects an invalid assessment request before model access', async () => {
   });
   assert.equal(response.status, 400);
   assert.equal((await response.json()).code, 'INVALID_REQUEST');
+});
+
+test('returns safe diagnostics when the model request is rejected', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response('', { status: 404 });
+  const db = {
+    prepare(sql) {
+      return {
+        async run() {},
+        bind() {
+          return {
+            async first() {
+              return sql.includes('COUNT') ? { count: 0 } : null;
+            },
+            async run() {},
+          };
+        },
+      };
+    },
+  };
+
+  try {
+    const response = await onRequest({
+      request: requestFor({
+        assessmentId: 'assessment-model-status-1234',
+        answers: Object.fromEntries(Array.from({ length: 12 }, (_, index) => [index + 1, 1])),
+      }),
+      env: { DEEPSEEK_API_KEY: 'test-key', IP_HASH_SECRET: 'test-secret', DB: db, DEEPSEEK_MODEL: 'deepseek-v4-flash' },
+    });
+    assert.equal(response.status, 502);
+    assert.deepEqual(await response.json(), {
+      success: false,
+      code: 'MODEL_REQUEST_FAILED',
+      error: '暂时无法生成，请稍后重试',
+      diagnostic: { stage: 'request', model: 'deepseek-v4-flash', status: 404 },
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });

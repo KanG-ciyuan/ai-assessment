@@ -19,6 +19,14 @@ function jsonResponse(data, status = 200) {
   });
 }
 
+class ModelFailure extends Error {
+  constructor(code, diagnostic) {
+    super(code);
+    this.code = code;
+    this.diagnostic = diagnostic;
+  }
+}
+
 function isAssessmentId(value) {
   return typeof value === 'string' && /^assessment-[a-z0-9-]{8,160}$/i.test(value);
 }
@@ -100,10 +108,16 @@ export async function onRequest(context) {
       }),
     });
     if (!modelResponse.ok) {
-      console.error('personalized-advice model request failed', { model, status: modelResponse.status });
-      throw new Error('model request failed');
+      const diagnostic = { stage: 'request', model, status: modelResponse.status };
+      console.error('personalized-advice model request failed', diagnostic);
+      throw new ModelFailure('MODEL_REQUEST_FAILED', diagnostic);
     }
-    const modelData = await modelResponse.json();
+    let modelData;
+    try {
+      modelData = await modelResponse.json();
+    } catch {
+      throw new ModelFailure('MODEL_RESPONSE_INVALID', { stage: 'decode', model });
+    }
     const content = modelData.choices?.[0]?.message?.content || '';
     try {
       advice = parsePersonalizedAdvice(content);
@@ -116,16 +130,31 @@ export async function onRequest(context) {
         startsWithCodeFence: typeof content === 'string' && content.trim().startsWith('```'),
         error: error instanceof Error ? error.message : 'unknown',
       });
-      throw error;
+      throw new ModelFailure('MODEL_RESPONSE_INVALID', {
+        stage: 'validation',
+        model,
+        hasChoices: Array.isArray(modelData.choices),
+        contentLength: typeof content === 'string' ? [...content].length : 0,
+        startsWithJson: typeof content === 'string' && content.trim().startsWith('{'),
+        startsWithCodeFence: typeof content === 'string' && content.trim().startsWith('```'),
+      });
     }
   } catch (error) {
-    if (!(error instanceof Error && error.message === 'invalid personalized advice response')) {
+    if (!(error instanceof ModelFailure)) {
       console.error('personalized-advice model call failed', {
         model,
         error: error instanceof Error ? error.message : 'unknown',
       });
     }
-    return jsonResponse({ success: false, code: 'MODEL_RESPONSE_INVALID', error: '暂时无法生成，请稍后重试' }, 502);
+    const failure = error instanceof ModelFailure
+      ? error
+      : new ModelFailure('MODEL_REQUEST_FAILED', { stage: 'network', model });
+    return jsonResponse({
+      success: false,
+      code: failure.code,
+      error: '暂时无法生成，请稍后重试',
+      diagnostic: failure.diagnostic,
+    }, 502);
   }
 
   try {
