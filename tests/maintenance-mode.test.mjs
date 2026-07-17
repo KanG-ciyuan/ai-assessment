@@ -17,6 +17,10 @@ assert.doesNotMatch(source, /supabase\.min\.js/);
 assert.doesNotMatch(source, /SUPABASE_URL/);
 assert.doesNotMatch(source, /调用 Vercel API/);
 assert.doesNotMatch(source, /fetch\(API_URL/);
+assert.match(source, /id="personalizedAdvicePanel"/);
+assert.match(source, /\/api\/personalized-advice/);
+assert.match(source, /个性化建议暂未开启/);
+assert.doesNotMatch(source, /fetch\('\/api\/generate-report/);
 
 await assert.rejects(access(new URL('../supabase.min.js', import.meta.url)));
 

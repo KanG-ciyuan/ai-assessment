@@ -2243,6 +2243,84 @@ button {
   margin: 0 auto 52px;
 }
 
+.personalized-advice-panel {
+  max-width: 840px;
+  margin: 0 auto 44px;
+  padding: 30px 34px;
+  border: 1px solid rgba(21,23,19,.11);
+  border-radius: 8px;
+  background: rgba(251,250,246,.86);
+  box-shadow: var(--shadow-archive);
+}
+
+.personalized-advice-kicker {
+  color: #9d8b54;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .22em;
+}
+
+.personalized-advice-title {
+  margin: 8px 0 8px;
+  font-family: 'Cormorant Garamond', 'Songti SC', serif;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.personalized-advice-copy {
+  color: #5f625b;
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.personalized-advice-result {
+  display: grid;
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.personalized-advice-item {
+  padding-top: 16px;
+  border-top: 1px solid rgba(21,23,19,.1);
+}
+
+.personalized-advice-item-title {
+  color: #7c6b35;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .16em;
+}
+
+.personalized-advice-item-copy {
+  margin-top: 6px;
+  color: #393b36;
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.btn-personalized-advice {
+  min-height: 44px;
+  margin-top: 22px;
+  padding: 0 20px;
+  border: 1px solid var(--museum-text);
+  border-radius: 4px;
+  background: var(--museum-text);
+  color: var(--museum-paper);
+  font: 600 13px 'Inter', -apple-system, sans-serif;
+  letter-spacing: .12em;
+  cursor: pointer;
+}
+
+.btn-personalized-advice:hover:not(:disabled) {
+  box-shadow: 0 10px 24px rgba(21,23,19,.16);
+}
+
+.btn-personalized-advice:disabled {
+  cursor: not-allowed;
+  opacity: .52;
+}
+
 .report-timeline::before {
   background: rgba(21,23,19,.16);
 }
@@ -2495,6 +2573,9 @@ button {
     font-size: 28px;
   }
   .report-score-table {
+    padding: 24px 18px;
+  }
+  .personalized-advice-panel {
     padding: 24px 18px;
   }
 }
@@ -2870,6 +2951,13 @@ button {
     <div class="report-dim-cards" id="reportDimCards"></div>
     <div class="report-timeline-title">你的 AI 学习路径</div>
     <div class="report-timeline" id="reportTimeline"></div>
+    <section class="personalized-advice-panel" id="personalizedAdvicePanel" aria-live="polite">
+      <div class="personalized-advice-kicker">个性化建议</div>
+      <h2 class="personalized-advice-title">把第 1 天行动落到一件具体小事</h2>
+      <p class="personalized-advice-copy" id="personalizedAdviceCopy"></p>
+      <div class="personalized-advice-result" id="personalizedAdviceResult" hidden></div>
+      <button class="btn-personalized-advice" id="btnPersonalizedAdvice" type="button"></button>
+    </section>
     <div class="report-score-table" id="reportScoreTable"></div>
     <div class="report-footer">
       <button class="btn-restart" onclick="restartQuiz()">重新测评</button>
@@ -2885,6 +2973,7 @@ import {
   QUESTIONS,
   STORAGE_KEY,
   calculateAssessment,
+  createAssessmentId,
   createStoredResult,
 } from './assessment-core.js';
 
@@ -2938,6 +3027,7 @@ const dimOrder = DIMENSION_ORDER;
 // ========================================
 let currentQ = 0;
 let answers = {};
+let activeStoredResult = null;
 
 // ========================================
 // 页面导航
@@ -2958,6 +3048,10 @@ function readLastResult() {
   try {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
     if (!stored || stored.version !== 2 || Object.keys(stored.answers || {}).length !== questions.length) return null;
+    if (typeof stored.assessmentId !== 'string' || !stored.assessmentId) {
+      stored.assessmentId = createAssessmentId();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+    }
     return stored;
   } catch {
     return null;
@@ -2970,7 +3064,7 @@ function refreshLastResultButton() {
 
 function showLastResult() {
   const stored = readLastResult();
-  if (stored) showV2Report(calculateAssessment(stored.answers));
+  if (stored) showV2Report(calculateAssessment(stored.answers), stored);
 }
 
 function goBack() {
@@ -3063,8 +3157,9 @@ function submitQuiz() {
   }
 
   const result = calculateAssessment(answers);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(createStoredResult(result, answers)));
-  showV2Report(result);
+  const stored = createStoredResult(result, answers);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+  showV2Report(result, stored);
 }
 
 // ========================================
@@ -3245,7 +3340,7 @@ function simpleMarkdownToHTML(md) {
 // ========================================
 // 报告渲染（支持 AI 增强 + 本地兜底）
 // ========================================
-function showV2Report(result) {
+function showV2Report(result, storedResult) {
   const { dimensions, total, stage, strengths, priorityDimension, route } = result;
   const fallbackNote = document.getElementById('reportFallbackNote');
   const aiWrap = document.getElementById('aiReportWrap');
@@ -3277,6 +3372,9 @@ function showV2Report(result) {
       '<div class="timeline-dot"></div><div class="timeline-label">' + step.label + '</div>' +
       '<div class="timeline-title">' + step.title + '</div><div class="timeline-desc">' + step.desc + '</div></div>').join('');
 
+  activeStoredResult = storedResult || createStoredResult(result, result.answers);
+  renderPersonalizedAdvice(activeStoredResult);
+
   let table = '<div class="score-table-title">得分一览</div>';
   dimOrder.forEach((key) => {
     const dimension = dimensions[key];
@@ -3284,6 +3382,85 @@ function showV2Report(result) {
   });
   table += '<div class="score-table-row"><span class="score-table-label">总分</span><span class="score-table-score">' + total + ' / 36</span><span class="score-table-level strength">' + stage.name + '</span></div>';
   document.getElementById('reportScoreTable').innerHTML = table;
+}
+
+function renderAdviceItem(title, text) {
+  const item = document.createElement('div');
+  item.className = 'personalized-advice-item';
+  const heading = document.createElement('div');
+  heading.className = 'personalized-advice-item-title';
+  heading.textContent = title;
+  const copy = document.createElement('div');
+  copy.className = 'personalized-advice-item-copy';
+  copy.textContent = text;
+  item.append(heading, copy);
+  return item;
+}
+
+function renderPersonalizedAdvice(storedResult) {
+  const copy = document.getElementById('personalizedAdviceCopy');
+  const result = document.getElementById('personalizedAdviceResult');
+  const button = document.getElementById('btnPersonalizedAdvice');
+  result.replaceChildren();
+
+  if (storedResult.personalizedAdvice) {
+    copy.textContent = '这份建议已为本次测评生成，重新打开报告不会重复调用。';
+    result.hidden = false;
+    result.append(
+      renderAdviceItem('当前状态', storedResult.personalizedAdvice.currentStatus),
+      renderAdviceItem('下一步动作', storedResult.personalizedAdvice.nextAction),
+      renderAdviceItem('一个提醒', storedResult.personalizedAdvice.caution),
+    );
+    button.hidden = true;
+    return;
+  }
+
+  result.hidden = true;
+  button.hidden = false;
+  if (!AI_ANALYSIS_ENABLED) {
+    copy.textContent = '个性化建议暂未开启。固定报告和七天行动路径仍可直接使用。';
+    button.textContent = '暂未开启';
+    button.disabled = true;
+    return;
+  }
+
+  copy.textContent = '它会根据本次四维得分，把第 1 天行动改写成一件更具体的小事。本次结果可免费获取 1 次。';
+  button.textContent = '获取个性化建议';
+  button.disabled = false;
+}
+
+async function requestPersonalizedAdvice() {
+  if (!AI_ANALYSIS_ENABLED || !activeStoredResult || activeStoredResult.personalizedAdvice) return;
+
+  const copy = document.getElementById('personalizedAdviceCopy');
+  const button = document.getElementById('btnPersonalizedAdvice');
+  button.disabled = true;
+  button.textContent = '正在生成建议';
+
+  try {
+    const response = await fetch('/api/personalized-advice', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assessmentId: activeStoredResult.assessmentId, answers: activeStoredResult.answers }),
+    });
+    const data = await response.json();
+    if (!response.ok || !data.success) {
+      const messages = {
+        FEATURE_UNAVAILABLE: '个性化建议暂未开启。',
+        DAILY_LIMIT_REACHED: '今日个性化建议额度已用完，请明日再试。',
+        ASSESSMENT_ALREADY_USED: '本次测评的建议已生成，请重新完成测评后再获取新的建议。',
+      };
+      throw new Error(messages[data.code] || '暂时无法生成，请稍后重试。');
+    }
+
+    activeStoredResult.personalizedAdvice = data.advice;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(activeStoredResult));
+    renderPersonalizedAdvice(activeStoredResult);
+  } catch (error) {
+    copy.textContent = error.message || '暂时无法生成，请稍后重试。';
+    button.textContent = '重新尝试';
+    button.disabled = false;
+  }
 }
 
 function showReport(dimScores, total, level, aiReport) {
@@ -3417,6 +3594,8 @@ window.prevQuestion = prevQuestion;
 window.submitQuiz = submitQuiz;
 window.restartQuiz = restartQuiz;
 window.showLastResult = showLastResult;
+
+document.getElementById('btnPersonalizedAdvice').addEventListener('click', requestPersonalizedAdvice);
 
 refreshLastResultButton();
 
