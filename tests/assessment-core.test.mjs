@@ -45,7 +45,16 @@ test('priority order and local result are deterministic', () => {
   const result = calculateAssessment(answers);
   const stored = createStoredResult(result, answers, '2026-07-16T00:00:00.000Z');
   assert.equal(result.priorityDimension.key, 'understanding');
-  assert.equal(result.route.steps.length, 3);
+  assert.equal(result.route.steps.length, 7);
+  assert.deepEqual(result.route.steps.map((step) => step.label), [
+    '第 1 天',
+    '第 2 天',
+    '第 3 天',
+    '第 4 天',
+    '第 5 天',
+    '第 6 天',
+    '第 7 天',
+  ]);
   assert.equal(stored.version, 2);
   assert.equal(stored.apiReport, undefined);
 });

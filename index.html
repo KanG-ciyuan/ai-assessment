@@ -3272,7 +3272,7 @@ function showV2Report(result) {
 
   const timeline = document.getElementById('reportTimeline');
   timeline.innerHTML = '<div class="timeline-title">你的优势：' + strengthNames + '</div>' +
-    '<div class="timeline-desc">当前优先提升：' + priorityDimension.name + '。先完成下面三项行动，再回来复测。</div>' +
+    '<div class="timeline-desc">当前优先提升：' + priorityDimension.name + '。完成这七天行动后，再回来复测。</div>' +
     route.steps.map((step, index) => '<div class="timeline-step anim-fade-up" style="animation-delay:' + (index * 0.15) + 's">' +
       '<div class="timeline-dot"></div><div class="timeline-label">' + step.label + '</div>' +
       '<div class="timeline-title">' + step.title + '</div><div class="timeline-desc">' + step.desc + '</div></div>').join('');
