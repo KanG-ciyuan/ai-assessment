@@ -19,3 +19,16 @@ CREATE TABLE IF NOT EXISTS quiz_reports (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (response_id) REFERENCES quiz_responses(id)
 );
+
+CREATE TABLE IF NOT EXISTS personalized_advice_usage (
+  assessment_id TEXT PRIMARY KEY,
+  ip_hash TEXT NOT NULL,
+  day_key TEXT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_personalized_advice_usage_ip_day
+  ON personalized_advice_usage (ip_hash, day_key);
+
+CREATE INDEX IF NOT EXISTS idx_personalized_advice_usage_created_at
+  ON personalized_advice_usage (created_at);
