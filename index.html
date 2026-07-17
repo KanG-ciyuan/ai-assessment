@@ -2275,28 +2275,55 @@ button {
 }
 
 .personalized-advice-result {
-  display: grid;
-  gap: 16px;
   margin-top: 22px;
 }
 
-.personalized-advice-item {
-  padding-top: 16px;
+.personalized-advice-content {
+  padding-top: 18px;
   border-top: 1px solid rgba(21,23,19,.1);
-}
-
-.personalized-advice-item-title {
-  color: #7c6b35;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: .16em;
-}
-
-.personalized-advice-item-copy {
-  margin-top: 6px;
   color: #393b36;
   font-size: 15px;
-  line-height: 1.8;
+  line-height: 1.85;
+}
+
+.personalized-advice-content h3,
+.personalized-advice-content h4,
+.personalized-advice-content h5 {
+  margin: 20px 0 8px;
+  color: #7c6b35;
+  font-family: 'Cormorant Garamond', 'Songti SC', serif;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.personalized-advice-content h3 { font-size: 22px; }
+.personalized-advice-content h4 { font-size: 18px; }
+.personalized-advice-content h5 { font-size: 16px; }
+
+.personalized-advice-content h3:first-child,
+.personalized-advice-content h4:first-child,
+.personalized-advice-content h5:first-child,
+.personalized-advice-content p:first-child {
+  margin-top: 0;
+}
+
+.personalized-advice-content p {
+  margin: 0 0 12px;
+}
+
+.personalized-advice-content ul,
+.personalized-advice-content ol {
+  margin: 0 0 14px;
+  padding-left: 22px;
+}
+
+.personalized-advice-content li + li {
+  margin-top: 5px;
+}
+
+.personalized-advice-content strong {
+  color: #1f211d;
+  font-weight: 700;
 }
 
 .btn-personalized-advice {
@@ -3384,17 +3411,93 @@ function showV2Report(result, storedResult) {
   document.getElementById('reportScoreTable').innerHTML = table;
 }
 
-function renderAdviceItem(title, text) {
-  const item = document.createElement('div');
-  item.className = 'personalized-advice-item';
-  const heading = document.createElement('div');
-  heading.className = 'personalized-advice-item-title';
-  heading.textContent = title;
-  const copy = document.createElement('div');
-  copy.className = 'personalized-advice-item-copy';
-  copy.textContent = text;
-  item.append(heading, copy);
-  return item;
+function appendInlineMarkdown(target, source) {
+  const parts = source.split(/(\*\*[^*]+\*\*)/g);
+  parts.forEach((part) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      const strong = document.createElement('strong');
+      strong.textContent = part.slice(2, -2);
+      target.append(strong);
+      return;
+    }
+    target.append(document.createTextNode(part));
+  });
+}
+
+function renderAdviceMarkdown(text) {
+  const content = document.createElement('div');
+  content.className = 'personalized-advice-content';
+  const lines = text.replace(/\r\n?/g, '\n').split('\n');
+  let paragraphLines = [];
+  let list = null;
+  let listType = null;
+
+  const flushParagraph = () => {
+    if (!paragraphLines.length) return;
+    const paragraph = document.createElement('p');
+    paragraphLines.forEach((line, index) => {
+      if (index) paragraph.append(document.createElement('br'));
+      appendInlineMarkdown(paragraph, line);
+    });
+    content.append(paragraph);
+    paragraphLines = [];
+  };
+
+  const flushList = () => {
+    if (!list) return;
+    content.append(list);
+    list = null;
+    listType = null;
+  };
+
+  lines.forEach((line) => {
+    const heading = line.match(/^(#{1,3})\s+(.+)$/);
+    const unordered = line.match(/^[-*+]\s+(.+)$/);
+    const ordered = line.match(/^\d+[.)]\s+(.+)$/);
+    if (heading) {
+      flushParagraph();
+      flushList();
+      const title = document.createElement(`h${Math.min(heading[1].length + 2, 5)}`);
+      appendInlineMarkdown(title, heading[2]);
+      content.append(title);
+      return;
+    }
+    if (unordered || ordered) {
+      flushParagraph();
+      const nextType = unordered ? 'ul' : 'ol';
+      if (!list || listType !== nextType) {
+        flushList();
+        list = document.createElement(nextType);
+        listType = nextType;
+      }
+      const item = document.createElement('li');
+      appendInlineMarkdown(item, (unordered || ordered)[1]);
+      list.append(item);
+      return;
+    }
+    if (!line.trim()) {
+      flushParagraph();
+      flushList();
+      return;
+    }
+    flushList();
+    paragraphLines.push(line);
+  });
+
+  flushParagraph();
+  flushList();
+  return content;
+}
+
+function getStoredAdviceText(personalizedAdvice) {
+  if (typeof personalizedAdvice === 'string') return personalizedAdvice;
+  if (!personalizedAdvice || typeof personalizedAdvice !== 'object') return '';
+  const sections = [
+    ['当前状态', personalizedAdvice.currentStatus],
+    ['下一步动作', personalizedAdvice.nextAction],
+    ['一个提醒', personalizedAdvice.caution],
+  ].filter(([, value]) => typeof value === 'string' && value.trim());
+  return sections.map(([title, value]) => `### ${title}\n${value}`).join('\n\n');
 }
 
 function renderPersonalizedAdvice(storedResult) {
@@ -3403,14 +3506,11 @@ function renderPersonalizedAdvice(storedResult) {
   const button = document.getElementById('btnPersonalizedAdvice');
   result.replaceChildren();
 
-  if (storedResult.personalizedAdvice) {
+  const adviceText = getStoredAdviceText(storedResult.personalizedAdvice);
+  if (adviceText) {
     copy.textContent = '这份建议已为本次测评生成，重新打开报告不会重复调用。';
     result.hidden = false;
-    result.append(
-      renderAdviceItem('当前状态', storedResult.personalizedAdvice.currentStatus),
-      renderAdviceItem('下一步动作', storedResult.personalizedAdvice.nextAction),
-      renderAdviceItem('一个提醒', storedResult.personalizedAdvice.caution),
-    );
+    result.append(renderAdviceMarkdown(adviceText));
     button.hidden = true;
     return;
   }
@@ -3430,7 +3530,7 @@ function renderPersonalizedAdvice(storedResult) {
 }
 
 async function requestPersonalizedAdvice() {
-  if (!AI_ANALYSIS_ENABLED || !activeStoredResult || activeStoredResult.personalizedAdvice) return;
+  if (!AI_ANALYSIS_ENABLED || !activeStoredResult || getStoredAdviceText(activeStoredResult.personalizedAdvice)) return;
 
   const copy = document.getElementById('personalizedAdviceCopy');
   const button = document.getElementById('btnPersonalizedAdvice');
