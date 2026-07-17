@@ -65,3 +65,50 @@ test('returns safe diagnostics when the model request is rejected', async () => 
     globalThis.fetch = originalFetch;
   }
 });
+
+test('returns field lengths without model text when a JSON reply fails validation', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    choices: [{ message: { content: JSON.stringify({
+      current_status: '甲'.repeat(10),
+      next_action: '乙'.repeat(40),
+      caution: '丙'.repeat(25),
+    }) } }],
+  }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  const db = {
+    prepare(sql) {
+      return {
+        async run() {},
+        bind() {
+          return {
+            async first() {
+              return sql.includes('COUNT') ? { count: 0 } : null;
+            },
+            async run() {},
+          };
+        },
+      };
+    },
+  };
+
+  try {
+    const response = await onRequest({
+      request: requestFor({
+        assessmentId: 'assessment-short-field-1234',
+        answers: Object.fromEntries(Array.from({ length: 12 }, (_, index) => [index + 1, 1])),
+      }),
+      env: { DEEPSEEK_API_KEY: 'test-key', IP_HASH_SECRET: 'test-secret', DB: db, DEEPSEEK_MODEL: 'deepseek-v4-flash' },
+    });
+    assert.equal(response.status, 502);
+    const body = await response.json();
+    assert.equal(body.code, 'MODEL_RESPONSE_INVALID');
+    assert.deepEqual(body.diagnostic.fieldLengths, {
+      current_status: 10,
+      next_action: 40,
+      caution: 25,
+    });
+    assert.equal('content' in body.diagnostic, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

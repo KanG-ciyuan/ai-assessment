@@ -31,6 +31,30 @@ function isAssessmentId(value) {
   return typeof value === 'string' && /^assessment-[a-z0-9-]{8,160}$/i.test(value);
 }
 
+function summarizeModelContent(content) {
+  const summary = {
+    contentLength: typeof content === 'string' ? [...content].length : 0,
+    startsWithJson: typeof content === 'string' && content.trim().startsWith('{'),
+    startsWithCodeFence: typeof content === 'string' && content.trim().startsWith('```'),
+  };
+  if (typeof content !== 'string') return summary;
+
+  try {
+    const parsed = JSON.parse(content);
+    if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') return summary;
+    summary.keys = Object.keys(parsed).sort();
+    summary.fieldLengths = Object.fromEntries(
+      ['current_status', 'next_action', 'caution'].map((key) => [
+        key,
+        typeof parsed[key] === 'string' ? [...parsed[key].trim()].length : null,
+      ]),
+    );
+  } catch {
+    // The response is intentionally not retained or returned in diagnostics.
+  }
+  return summary;
+}
+
 async function hashIp(ip, salt) {
   const data = new TextEncoder().encode(`${salt}:${ip}`);
   const digest = await crypto.subtle.digest('SHA-256', data);
@@ -122,21 +146,18 @@ export async function onRequest(context) {
     try {
       advice = parsePersonalizedAdvice(content);
     } catch (error) {
+      const contentSummary = summarizeModelContent(content);
       console.error('personalized-advice model response rejected', {
         model,
         hasChoices: Array.isArray(modelData.choices),
-        contentLength: typeof content === 'string' ? [...content].length : 0,
-        startsWithJson: typeof content === 'string' && content.trim().startsWith('{'),
-        startsWithCodeFence: typeof content === 'string' && content.trim().startsWith('```'),
+        ...contentSummary,
         error: error instanceof Error ? error.message : 'unknown',
       });
       throw new ModelFailure('MODEL_RESPONSE_INVALID', {
         stage: 'validation',
         model,
         hasChoices: Array.isArray(modelData.choices),
-        contentLength: typeof content === 'string' ? [...content].length : 0,
-        startsWithJson: typeof content === 'string' && content.trim().startsWith('{'),
-        startsWithCodeFence: typeof content === 'string' && content.trim().startsWith('```'),
+        ...contentSummary,
       });
     }
   } catch (error) {
