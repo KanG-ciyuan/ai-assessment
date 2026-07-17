@@ -3,7 +3,7 @@ import {
   buildAdviceInput,
   buildPersonalizedAdvicePrompt,
   isCompleteAnswerSet,
-  parsePersonalizedAdvice,
+  validatePersonalizedAdvice,
 } from '../../personalized-advice-core.js';
 
 const corsHeaders = {
@@ -29,30 +29,6 @@ class ModelFailure extends Error {
 
 function isAssessmentId(value) {
   return typeof value === 'string' && /^assessment-[a-z0-9-]{8,160}$/i.test(value);
-}
-
-function summarizeModelContent(content) {
-  const summary = {
-    contentLength: typeof content === 'string' ? [...content].length : 0,
-    startsWithJson: typeof content === 'string' && content.trim().startsWith('{'),
-    startsWithCodeFence: typeof content === 'string' && content.trim().startsWith('```'),
-  };
-  if (typeof content !== 'string') return summary;
-
-  try {
-    const parsed = JSON.parse(content);
-    if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') return summary;
-    summary.keys = Object.keys(parsed).sort();
-    summary.fieldLengths = Object.fromEntries(
-      ['current_status', 'next_action', 'caution'].map((key) => [
-        key,
-        typeof parsed[key] === 'string' ? [...parsed[key].trim()].length : null,
-      ]),
-    );
-  } catch {
-    // The response is intentionally not retained or returned in diagnostics.
-  }
-  return summary;
 }
 
 async function hashIp(ip, salt) {
@@ -124,13 +100,10 @@ export async function onRequest(context) {
       body: JSON.stringify({
         model,
         messages: [
-          { role: 'system', content: '你是一个简洁、务实的 AI 学习教练。严格遵守用户消息中的 JSON 输出契约。' },
+          { role: 'system', content: '你是一个务实、耐心的 AI 学习教练。请以自然中文给出高质量、可执行的建议。' },
           { role: 'user', content: prompt },
         ],
-        thinking: { type: 'disabled' },
-        response_format: { type: 'json_object' },
         temperature: 0.3,
-        max_tokens: 500,
       }),
     });
     if (!modelResponse.ok) {
@@ -146,21 +119,9 @@ export async function onRequest(context) {
     }
     const content = modelData.choices?.[0]?.message?.content || '';
     try {
-      advice = parsePersonalizedAdvice(content);
-    } catch (error) {
-      const contentSummary = summarizeModelContent(content);
-      console.error('personalized-advice model response rejected', {
-        model,
-        hasChoices: Array.isArray(modelData.choices),
-        ...contentSummary,
-        error: error instanceof Error ? error.message : 'unknown',
-      });
-      throw new ModelFailure('MODEL_RESPONSE_INVALID', {
-        stage: 'validation',
-        model,
-        hasChoices: Array.isArray(modelData.choices),
-        ...contentSummary,
-      });
+      advice = validatePersonalizedAdvice(content);
+    } catch {
+      throw new ModelFailure('MODEL_RESPONSE_EMPTY', { stage: 'content', model });
     }
   } catch (error) {
     if (!(error instanceof ModelFailure)) {

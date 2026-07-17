@@ -65,27 +65,24 @@ test('returns safe diagnostics when the model request is rejected', async () => 
       error: '暂时无法生成，请稍后重试',
       diagnostic: { stage: 'request', model: 'deepseek-v4-flash', status: 404 },
     });
-    assert.deepEqual(requestPayload.thinking, { type: 'disabled' });
-    assert.deepEqual(requestPayload.response_format, { type: 'json_object' });
-    assert.equal(requestPayload.max_tokens, 500);
+    assert.equal('thinking' in requestPayload, false);
+    assert.equal('response_format' in requestPayload, false);
+    assert.equal('max_tokens' in requestPayload, false);
   } finally {
     globalThis.fetch = originalFetch;
   }
 });
 
-test('returns field lengths without model text when a JSON reply fails validation', async () => {
+test('rejects a blank model response without writing usage', async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () => new Response(JSON.stringify({
-    choices: [{ message: { content: JSON.stringify({
-      current_status: '甲'.repeat(10),
-      next_action: '乙'.repeat(40),
-      caution: '丙'.repeat(20),
-    }) } }],
+    choices: [{ message: { content: '   ' } }],
   }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  let insertCount = 0;
   const db = {
     prepare(sql) {
       return {
-        async run() {},
+        async run() { if (sql.startsWith('INSERT')) insertCount += 1; },
         bind() {
           return {
             async first() {
@@ -101,20 +98,55 @@ test('returns field lengths without model text when a JSON reply fails validatio
   try {
     const response = await onRequest({
       request: requestFor({
-        assessmentId: 'assessment-short-field-1234',
+        assessmentId: 'assessment-empty-response-1234',
         answers: Object.fromEntries(Array.from({ length: 12 }, (_, index) => [index + 1, 1])),
       }),
       env: { DEEPSEEK_API_KEY: 'test-key', IP_HASH_SECRET: 'test-secret', DB: db, DEEPSEEK_MODEL: 'deepseek-v4-flash' },
     });
     assert.equal(response.status, 502);
     const body = await response.json();
-    assert.equal(body.code, 'MODEL_RESPONSE_INVALID');
-    assert.deepEqual(body.diagnostic.fieldLengths, {
-      current_status: 10,
-      next_action: 40,
-      caution: 20,
+    assert.equal(body.code, 'MODEL_RESPONSE_EMPTY');
+    assert.deepEqual(body.diagnostic, { stage: 'content', model: 'deepseek-v4-flash' });
+    assert.equal(insertCount, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('returns a successful freeform model response and records one usage row', async () => {
+  const originalFetch = globalThis.fetch;
+  const advice = '## 建议\n\n先完成一次 **真实任务**。';
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    choices: [{ message: { content: advice } }],
+  }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  let insertCount = 0;
+  const db = {
+    prepare(sql) {
+      return {
+        async run() { if (sql.startsWith('INSERT')) insertCount += 1; },
+        bind() {
+          return {
+            async first() {
+              return sql.includes('COUNT') ? { count: 0 } : null;
+            },
+            async run() { if (sql.startsWith('INSERT')) insertCount += 1; },
+          };
+        },
+      };
+    },
+  };
+
+  try {
+    const response = await onRequest({
+      request: requestFor({
+        assessmentId: 'assessment-freeform-success-1234',
+        answers: Object.fromEntries(Array.from({ length: 12 }, (_, index) => [index + 1, 1])),
+      }),
+      env: { DEEPSEEK_API_KEY: 'test-key', IP_HASH_SECRET: 'test-secret', DB: db, DEEPSEEK_MODEL: 'deepseek-v4-flash' },
     });
-    assert.equal('content' in body.diagnostic, false);
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), { success: true, advice });
+    assert.equal(insertCount, 1);
   } finally {
     globalThis.fetch = originalFetch;
   }
