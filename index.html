@@ -2977,8 +2977,8 @@ import {
   createStoredResult,
 } from './assessment-core.js';
 
-// AI API 暂停期间保留基础测评体验，不发出模型请求。
-const AI_ANALYSIS_ENABLED = false;
+// 固定报告始终本地生成；个性化建议仅在用户主动点击时调用模型。
+const AI_ANALYSIS_ENABLED = true;
 
 // ========================================
 // 题目数据
