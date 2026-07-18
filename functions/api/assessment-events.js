@@ -63,6 +63,18 @@ async function createFeishuRecord(env, token, fields) {
   return { exported: false, diagnostic: { stage: 'record', status: response.status, code: data.code } };
 }
 
+async function persistFailureDiagnostic(env, assessmentId, diagnostic) {
+  if (!diagnostic) return;
+  await env.DB.prepare(
+    'INSERT INTO assessment_export_diagnostics (assessment_id, stage, status, provider_code) VALUES (?, ?, ?, ?)'
+  ).bind(
+    assessmentId,
+    diagnostic.stage,
+    diagnostic.status ?? null,
+    diagnostic.code ?? null,
+  ).run();
+}
+
 export async function onRequest(context) {
   const { request, env } = context;
 
@@ -107,17 +119,27 @@ export async function onRequest(context) {
     result: calculateAssessment(body.answers),
   });
 
+  let diagnostic = null;
   try {
     const tokenResult = await getTenantAccessToken(env);
     if (!tokenResult.token) {
       console.error('assessment-export failed', tokenResult.diagnostic);
+      diagnostic = tokenResult.diagnostic;
     } else {
       const recordResult = await createFeishuRecord(env, tokenResult.token, fields);
       if (recordResult.exported) return jsonResponse({ success: true, exported: true }, 202);
       console.error('assessment-export failed', recordResult.diagnostic);
+      diagnostic = recordResult.diagnostic;
     }
   } catch {
-    console.error('assessment-export failed', { stage: 'provider_exception' });
+    diagnostic = { stage: 'provider_exception' };
+    console.error('assessment-export failed', diagnostic);
+  }
+
+  try {
+    await persistFailureDiagnostic(env, body.assessmentId, diagnostic);
+  } catch {
+    // The visitor result remains independent from diagnostic storage.
   }
 
   try {

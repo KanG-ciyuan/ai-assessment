@@ -157,3 +157,30 @@ test('logs only safe Feishu failure diagnostics before releasing the reservation
     console.error = originalConsoleError;
   }
 });
+
+test('persists only safe failure metadata for later diagnosis', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => new Response(JSON.stringify(
+    url.includes('tenant_access_token') ? { tenant_access_token: 'tenant-token', code: 0 } : { code: 99991663 },
+  ), { status: 200 });
+  const DB = createDb();
+
+  try {
+    await onRequest({
+      request: requestFor({
+        assessmentId: 'assessment-export-persisted-diagnostic-1234',
+        consentedAt: '2026-07-18T08:00:00.000Z',
+        completedAt: '2026-07-18T08:05:00.000Z',
+        answers,
+      }),
+      env: baseEnv(DB),
+    });
+
+    assert.equal(
+      DB.sqlLog.some((sql) => sql.includes('INSERT INTO assessment_export_diagnostics')),
+      true,
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

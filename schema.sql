@@ -37,3 +37,12 @@ CREATE TABLE IF NOT EXISTS assessment_export_usage (
   assessment_id TEXT PRIMARY KEY,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS assessment_export_diagnostics (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  assessment_id TEXT NOT NULL,
+  stage TEXT NOT NULL,
+  status INTEGER,
+  provider_code INTEGER,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
