@@ -127,3 +127,33 @@ test('releases the D1 reservation when Feishu rejects a record', async () => {
     globalThis.fetch = originalFetch;
   }
 });
+
+test('logs only safe Feishu failure diagnostics before releasing the reservation', async () => {
+  const originalFetch = globalThis.fetch;
+  const originalConsoleError = console.error;
+  const logs = [];
+  globalThis.fetch = async (url) => new Response(JSON.stringify(
+    url.includes('tenant_access_token') ? { tenant_access_token: 'tenant-token', code: 0 } : { code: 99991663, msg: 'permission denied' },
+  ), { status: 200 });
+  console.error = (...args) => logs.push(args);
+
+  try {
+    await onRequest({
+      request: requestFor({
+        assessmentId: 'assessment-export-diagnostics-1234',
+        consentedAt: '2026-07-18T08:00:00.000Z',
+        completedAt: '2026-07-18T08:05:00.000Z',
+        answers,
+      }),
+      env: baseEnv(createDb()),
+    });
+
+    assert.deepEqual(logs, [[
+      'assessment-export failed',
+      { stage: 'record', status: 200, code: 99991663 },
+    ]]);
+  } finally {
+    globalThis.fetch = originalFetch;
+    console.error = originalConsoleError;
+  }
+});

@@ -37,11 +37,12 @@ async function getTenantAccessToken(env) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ app_id: env.FEISHU_APP_ID, app_secret: env.FEISHU_APP_SECRET }),
   });
-  if (!response.ok) return null;
+  if (!response.ok) return { token: null, diagnostic: { stage: 'token', status: response.status } };
   const data = await response.json();
-  return data.code === 0 && typeof data.tenant_access_token === 'string'
-    ? data.tenant_access_token
-    : null;
+  if (data.code === 0 && typeof data.tenant_access_token === 'string') {
+    return { token: data.tenant_access_token, diagnostic: null };
+  }
+  return { token: null, diagnostic: { stage: 'token', status: response.status, code: data.code } };
 }
 
 async function createFeishuRecord(env, token, fields) {
@@ -56,9 +57,10 @@ async function createFeishuRecord(env, token, fields) {
       body: JSON.stringify({ fields }),
     },
   );
-  if (!response.ok) return false;
+  if (!response.ok) return { exported: false, diagnostic: { stage: 'record', status: response.status } };
   const data = await response.json();
-  return data.code === 0;
+  if (data.code === 0) return { exported: true, diagnostic: null };
+  return { exported: false, diagnostic: { stage: 'record', status: response.status, code: data.code } };
 }
 
 export async function onRequest(context) {
@@ -106,11 +108,16 @@ export async function onRequest(context) {
   });
 
   try {
-    const token = await getTenantAccessToken(env);
-    const exported = token && await createFeishuRecord(env, token, fields);
-    if (exported) return jsonResponse({ success: true, exported: true }, 202);
+    const tokenResult = await getTenantAccessToken(env);
+    if (!tokenResult.token) {
+      console.error('assessment-export failed', tokenResult.diagnostic);
+    } else {
+      const recordResult = await createFeishuRecord(env, tokenResult.token, fields);
+      if (recordResult.exported) return jsonResponse({ success: true, exported: true }, 202);
+      console.error('assessment-export failed', recordResult.diagnostic);
+    }
   } catch {
-    // Provider details are intentionally not returned to the browser.
+    console.error('assessment-export failed', { stage: 'provider_exception' });
   }
 
   try {
