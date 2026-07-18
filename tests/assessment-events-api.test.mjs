@@ -14,12 +14,15 @@ function requestFor(body) {
 
 function createDb({ existing = false } = {}) {
   const sqlLog = [];
+  const bindings = [];
   return {
     sqlLog,
+    bindings,
     prepare(sql) {
       return {
         async run() { sqlLog.push(sql); },
-        bind() {
+        bind(...values) {
+          bindings.push({ sql, values });
           return {
             async first() { return existing ? { assessment_id: 'assessment-duplicate-1234' } : null; },
             async run() { sqlLog.push(sql); },
@@ -180,6 +183,34 @@ test('persists only safe failure metadata for later diagnosis', async () => {
       DB.sqlLog.some((sql) => sql.includes('INSERT INTO assessment_export_diagnostics')),
       true,
     );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('captures the Feishu business code when record creation returns 403', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    if (url.includes('tenant_access_token')) {
+      return new Response(JSON.stringify({ tenant_access_token: 'tenant-token', code: 0 }), { status: 200 });
+    }
+    return new Response(JSON.stringify({ code: 99991668 }), { status: 403 });
+  };
+  const DB = createDb();
+
+  try {
+    await onRequest({
+      request: requestFor({
+        assessmentId: 'assessment-export-403-diagnostic-1234',
+        consentedAt: '2026-07-18T08:00:00.000Z',
+        completedAt: '2026-07-18T08:05:00.000Z',
+        answers,
+      }),
+      env: baseEnv(DB),
+    });
+
+    const diagnosticInsert = DB.bindings.find(({ sql }) => sql.includes('INSERT INTO assessment_export_diagnostics'));
+    assert.equal(diagnosticInsert.values[3], 99991668);
   } finally {
     globalThis.fetch = originalFetch;
   }

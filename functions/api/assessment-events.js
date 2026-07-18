@@ -57,8 +57,17 @@ async function createFeishuRecord(env, token, fields) {
       body: JSON.stringify({ fields }),
     },
   );
-  if (!response.ok) return { exported: false, diagnostic: { stage: 'record', status: response.status } };
-  const data = await response.json();
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    return {
+      exported: false,
+      diagnostic: {
+        stage: 'record',
+        status: response.status,
+        code: typeof data?.code === 'number' ? data.code : undefined,
+      },
+    };
+  }
   if (data.code === 0) return { exported: true, diagnostic: null };
   return { exported: false, diagnostic: { stage: 'record', status: response.status, code: data.code } };
 }
