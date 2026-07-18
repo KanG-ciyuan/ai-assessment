@@ -16,8 +16,8 @@ test('maps only approved anonymous assessment fields', () => {
 
   assert.deepEqual(payload, {
     '测评编号': 'assessment-test-1234',
-    '同意时间': '2026-07-18T08:00:00.000Z',
-    '完成时间': '2026-07-18T08:05:00.000Z',
+    '同意时间': '2026-07-18 16:00:00',
+    '完成时间': '2026-07-18 16:05:00',
     '题目答案': JSON.stringify(answers),
     'AI 理解与判断': 3,
     '任务表达与协作': 4,
