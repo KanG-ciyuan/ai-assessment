@@ -32,3 +32,8 @@ CREATE INDEX IF NOT EXISTS idx_personalized_advice_usage_ip_day
 
 CREATE INDEX IF NOT EXISTS idx_personalized_advice_usage_created_at
   ON personalized_advice_usage (created_at);
+
+CREATE TABLE IF NOT EXISTS assessment_export_usage (
+  assessment_id TEXT PRIMARY KEY,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
