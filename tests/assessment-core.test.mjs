@@ -63,9 +63,16 @@ test('priority order and local result are deterministic', () => {
 test('stored V2 results carry the supplied assessment identifier', () => {
   const answers = answerAll(1);
   const result = calculateAssessment(answers);
-  const stored = createStoredResult(result, answers, '2026-07-17T00:00:00.000Z', 'assessment-test-1234');
+  const stored = createStoredResult(
+    result,
+    answers,
+    '2026-07-17T00:00:00.000Z',
+    'assessment-test-1234',
+    '2026-07-17T00:00:00.000Z',
+  );
 
   assert.equal(stored.assessmentId, 'assessment-test-1234');
+  assert.equal(stored.consentedAt, '2026-07-17T00:00:00.000Z');
   assert.equal(stored.personalizedAdvice, undefined);
 });
 

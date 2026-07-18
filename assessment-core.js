@@ -186,10 +186,12 @@ export function createStoredResult(
   answers,
   savedAt = new Date().toISOString(),
   assessmentId = createAssessmentId(),
+  consentedAt,
 ) {
   return {
     version: 2,
     assessmentId,
+    consentedAt,
     savedAt,
     answers: { ...answers },
     total: result.total,

@@ -1604,6 +1604,32 @@ button {
   width: auto;
 }
 
+.btn-start:disabled {
+  cursor: not-allowed;
+  opacity: .42;
+  transform: none;
+  box-shadow: none;
+}
+
+.consent-control {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 490px;
+  margin: 0 0 16px;
+  color: rgba(244,241,233,.62);
+  font: 13px/1.65 'Inter', -apple-system, sans-serif;
+  cursor: pointer;
+}
+
+.consent-control input {
+  width: 16px;
+  height: 16px;
+  margin: 3px 0 0;
+  accent-color: #d5c27b;
+  flex: 0 0 auto;
+}
+
 .hero-footnote {
   margin-top: 18px;
   color: rgba(244,241,233,.52);
@@ -2813,7 +2839,11 @@ button {
       <p class="hero-title-sub">你的 AI 能力在哪个段位？</p>
       <p class="hero-desc">12 个真实场景 · 4 个维度 · 看清你如何把 AI 用进真实问题</p>
       <p class="hero-desc-extras">测评后你将获得：能力阶段、四维画像和七天行动路径</p>
-      <button class="btn-start" onclick="goToQuiz()">开始测评</button>
+      <label class="consent-control" for="consentCheckbox">
+        <input type="checkbox" id="consentCheckbox">
+        <span>我已知悉并同意：本次匿名测评数据将用于改进测评。</span>
+      </label>
+      <button class="btn-start" id="btnStart" type="button" onclick="goToQuiz()" disabled>开始测评</button>
       <button class="btn-last-result" id="btnLastResult" onclick="showLastResult()">查看上次结果</button>
       <div class="hero-footnote">测评报告由 AI 大模型驱动 · 为你生成个性化分析</div>
 
@@ -3055,6 +3085,7 @@ const dimOrder = DIMENSION_ORDER;
 let currentQ = 0;
 let answers = {};
 let activeStoredResult = null;
+let consentedAt = null;
 
 // ========================================
 // 页面导航
@@ -3067,6 +3098,9 @@ function switchPage(showId) {
 }
 
 function goToQuiz() {
+  const checkbox = document.getElementById('consentCheckbox');
+  if (!checkbox.checked) return;
+  consentedAt = new Date().toISOString();
   switchPage('quizPage');
   buildQuiz();
 }
@@ -3184,9 +3218,29 @@ function submitQuiz() {
   }
 
   const result = calculateAssessment(answers);
-  const stored = createStoredResult(result, answers);
+  const completedAt = new Date().toISOString();
+  const stored = createStoredResult(result, answers, completedAt, undefined, consentedAt);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
   showV2Report(result, stored);
+  void exportAssessmentEvent(stored, completedAt);
+}
+
+async function exportAssessmentEvent(stored, completedAt) {
+  if (!stored.consentedAt) return;
+  try {
+    await fetch('/api/assessment-events', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        assessmentId: stored.assessmentId,
+        consentedAt: stored.consentedAt,
+        completedAt,
+        answers: stored.answers,
+      }),
+    });
+  } catch {
+    // Export is intentionally non-blocking: the local report remains available.
+  }
 }
 
 // ========================================
@@ -3696,6 +3750,9 @@ window.restartQuiz = restartQuiz;
 window.showLastResult = showLastResult;
 
 document.getElementById('btnPersonalizedAdvice').addEventListener('click', requestPersonalizedAdvice);
+document.getElementById('consentCheckbox').addEventListener('change', (event) => {
+  document.getElementById('btnStart').disabled = !event.target.checked;
+});
 
 refreshLastResultButton();
 
