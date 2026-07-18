@@ -96,9 +96,13 @@ test('recalculates and exports exactly one approved anonymous record', async () 
     assert.equal(response.status, 202);
     assert.deepEqual(await response.json(), { success: true, exported: true });
     assert.equal(requests.length, 2);
-    assert.equal(requests[1].body.fields['测评编号'], 'assessment-export-success-1234');
-    assert.equal(requests[1].body.fields['测评版本'], 'V2.1');
-    assert.equal('IP' in requests[1].body.fields, false);
+    assert.match(requests[1].url, /\/base\/v3\/bases\/RB9abnjZQa5NUbsOPIFceIa7nET\/tables\/tblr9WIZADs8875D\/records\/batch_create$/);
+    assert.deepEqual(requests[1].body.fields, [
+      '测评编号', '同意时间', '完成时间', '题目答案', 'AI 理解与判断', '任务表达与协作',
+      '场景应用与问题解决', '工具选择与流程能力', '总分', '能力阶段', '测评版本',
+    ]);
+    assert.equal(requests[1].body.rows[0][0], 'assessment-export-success-1234');
+    assert.equal(requests[1].body.rows[0][10], 'V2.1');
     assert.equal(DB.sqlLog.filter((sql) => sql.startsWith('INSERT')).length, 1);
   } finally {
     globalThis.fetch = originalFetch;

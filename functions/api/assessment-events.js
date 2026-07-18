@@ -46,15 +46,19 @@ async function getTenantAccessToken(env) {
 }
 
 async function createFeishuRecord(env, token, fields) {
+  const fieldNames = Object.keys(fields);
   const response = await fetch(
-    `https://open.feishu.cn/open-apis/bitable/v1/apps/${env.FEISHU_BASE_TOKEN}/tables/${env.FEISHU_ASSESSMENT_TABLE_ID}/records`,
+    `https://open.feishu.cn/open-apis/base/v3/bases/${env.FEISHU_BASE_TOKEN}/tables/${env.FEISHU_ASSESSMENT_TABLE_ID}/records/batch_create`,
     {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ fields }),
+      body: JSON.stringify({
+        fields: fieldNames,
+        rows: [fieldNames.map((name) => fields[name])],
+      }),
     },
   );
   const data = await response.json().catch(() => null);
