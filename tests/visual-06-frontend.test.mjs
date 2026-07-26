@@ -32,3 +32,12 @@ test('selected visual has desktop, mobile and reduced-motion rules', async () =>
   assert.match(css, /\.bio-organism/);
   assert.doesNotMatch(css, /\.storm-signal/);
 });
+
+test('long personalized advice scrolls to a visible start below the fixed header', async () => {
+  const app = await readFile(new URL('app.js', root), 'utf8');
+  const css = await readFile(new URL('styles.css', root), 'utf8');
+
+  assert.match(app, /personalizedAdvicePanel\.scrollIntoView\(\{ behavior: 'smooth', block: 'start' \}\)/);
+  assert.doesNotMatch(app, /personalizedAdvicePanel\.scrollIntoView\(\{ behavior: 'smooth', block: 'center' \}\)/);
+  assert.match(css, /\.advice-panel \{[^}]*scroll-margin-top:\s*\d+px;/s);
+});

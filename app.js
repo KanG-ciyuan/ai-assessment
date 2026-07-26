@@ -363,7 +363,7 @@ async function requestPersonalizedAdvice() {
     state.storedResult.personalizedAdvice = data.advice;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state.storedResult));
     renderPersonalizedAdvice(state.storedResult);
-    els.personalizedAdvicePanel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    els.personalizedAdvicePanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch (error) {
     els.personalizedAdviceStatus.textContent = error instanceof AdviceRequestError
       ? error.message
@@ -373,7 +373,7 @@ async function requestPersonalizedAdvice() {
     els.adviceButton.hidden = false;
     els.adviceButton.disabled = false;
     setAdviceButtonText('重新尝试');
-    els.personalizedAdvicePanel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    els.personalizedAdvicePanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 }
 
